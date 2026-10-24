@@ -1,4 +1,5 @@
 """A second Crypto Trader on the same data folder is refused, by the kernel's lock."""
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -21,9 +22,11 @@ def test_second_process_is_refused_while_the_first_holds_the_lock(tmp_path, monk
             "try:\n    s.acquire()\n    print('ACQUIRED')\n"
             "except s.AlreadyRunning as e:\n    print('REFUSED', e)\n"
         ) % (str(ROOT), str(tmp_path))
-        out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
-                             env={"CRYPTO_TRADER_DATA_DIR": str(tmp_path), "PATH": ""}).stdout
-        assert out.startswith("REFUSED") and "Crypto Trader is already running" in out
+        # The full environment: Windows cannot start Python without SYSTEMROOT.
+        env = {**os.environ, "CRYPTO_TRADER_DATA_DIR": str(tmp_path)}
+        res = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env)
+        assert res.stdout.startswith("REFUSED"), res.stdout + res.stderr
+        assert "Crypto Trader is already running" in res.stdout
         assert single_instance.holder()["pid"]
     finally:
         single_instance.release()
