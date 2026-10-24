@@ -24,3 +24,14 @@ def releases() -> list[dict]:
 @router.post("/pause")
 def pause(body: Paused) -> dict:
     return system_controller.set_paused(body.paused)
+
+
+
+@router.post("/stop")
+def stop() -> dict:
+    return system_controller.lifecycle_action("stop")
+
+
+@router.post("/restart")
+def restart() -> dict:
+    return system_controller.lifecycle_action("restart")

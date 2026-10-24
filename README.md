@@ -71,6 +71,11 @@ installs everything). Stop with `Crypto Stop.command`.
 
 **Windows**: double-click `Setup & Start Crypto.bat`. Stop with `Stop Crypto.bat`.
 
+The dashboard header also has **Pause** (no new signals or trades; open
+trades still managed), **Restart** and **Stop**. Stop and Restart shut the app
+down cleanly; open positions keep their exchange-side stop and take-profits
+while it is down.
+
 **By hand**:
 
 ```bash

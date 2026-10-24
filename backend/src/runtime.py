@@ -18,6 +18,12 @@ exit is still recorded while paused.
 
 The exchange SDK is synchronous, so every call into services runs in a
 worker thread (`asyncio.to_thread`); the event loop only schedules.
+
+**Shutdown waits for a pass already running.** Cancelling a task stops its
+await, not its thread, so `stop()` waits for the in-flight threads before
+returning; only then does app.py close the databases. Otherwise a pass
+caught between placing an order and recording it would hit a closed
+database and leave the position unrecorded.
 """
 from __future__ import annotations
 
@@ -49,6 +55,7 @@ class TradingRuntime:
                              "engines_at": None, "events_at": None, "unmanaged_positions": [],
                              "open_positions": 0}
         self._tasks: list[asyncio.Task] = []
+        self._inflight: set[asyncio.Future] = set()
         self._last_equity_snapshot = 0.0
 
     # ── loops ────────────────────────────────────────────────────────────────
@@ -86,7 +93,10 @@ class TradingRuntime:
     async def _every(self, seconds: float, fn) -> None:
         while True:
             try:
-                await asyncio.to_thread(fn)
+                work = asyncio.ensure_future(asyncio.to_thread(fn))
+                self._inflight.add(work)
+                work.add_done_callback(self._inflight.discard)
+                await asyncio.shield(work)     # a cancel stops the wait, never the pass
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -115,6 +125,9 @@ class TradingRuntime:
             t.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
         self._tasks = []
+        if self._inflight:
+            log.info("[Runtime] waiting for %d running pass(es) to finish", len(self._inflight))
+            await asyncio.gather(*list(self._inflight), return_exceptions=True)
 
     def status(self) -> dict:
         return {"paused": self.paused, "network": config.get("network"),

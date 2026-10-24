@@ -4,6 +4,16 @@ All notable changes to Crypto Trader. Newest first.
 
 ## [Unreleased]
 
+### Added
+- Restart and Stop buttons next to Pause in the dashboard header. Both shut
+  the app down cleanly; Restart starts the same checkout again and the page
+  reloads when it is back.
+
+### Fixed
+- Shutting down (Stop, Restart, Ctrl+C, the Stop scripts) now waits for a
+  pass already running. Before, it could close the databases under a running
+  engine or positions pass, which then failed with "database is closed".
+
 ### Changed
 - Risk per trade can now be set up to 100% of equity (was 5%). The default
   stays 0.5%. The max position size cap and free margin still limit how big

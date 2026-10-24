@@ -17,13 +17,17 @@ from __future__ import annotations
 import argparse
 import logging
 import logging.handlers
+import os
 import socket
+import subprocess
 import sys
 import threading
+import time
 import webbrowser
+from pathlib import Path
 
 from backend.src import config
-from backend.src.utils import single_instance
+from backend.src.utils import lifecycle, single_instance
 from backend.src.utils.version_history import APP_NAME, __version__
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s - %(message)s"
@@ -53,12 +57,39 @@ def port_free(host: str, port: int) -> bool:
             return False
 
 
+def wait_for_port(host: str, port: int, timeout: float) -> bool:
+    """True once the port is free. A restart waits here for the old process's port."""
+    deadline = time.monotonic() + timeout
+    while not port_free(host, port):
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.25)
+    return True
+
+
+def relaunch_if_requested(argv: list[str], platform: str = sys.platform,
+                          execv=os.execv, popen=subprocess.Popen) -> None:
+    """After a dashboard Restart: start this checkout again. POSIX replaces this
+    process (same terminal window); Windows has no real exec, so it spawns the
+    new process into the same console and this one exits."""
+    if lifecycle.requested() != "restart":
+        return
+    cmd = lifecycle.restart_argv(str(Path(__file__).resolve()), argv)
+    logging.getLogger(__name__).info("[Run] restarting: %s", " ".join(cmd[1:]))
+    logging.shutdown()
+    if platform == "win32":
+        popen(cmd)
+    else:
+        execv(cmd[0], cmd)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=f"{APP_NAME} {__version__}")
     parser.add_argument("--no-browser", action="store_true", help="do not open the dashboard")
     parser.add_argument("--wait", type=float, default=0.0,
                         help="seconds to wait for a previous instance to exit")
-    args = parser.parse_args(argv)
+    raw_argv = sys.argv[1:] if argv is None else argv
+    args = parser.parse_args(raw_argv)
 
     config.load()
     try:
@@ -70,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     setup_logging()
     host = "127.0.0.1"
     port = int(config.get("dashboard_port", config.DEFAULT_DASHBOARD_PORT))
-    if not port_free(host, port):
+    if not wait_for_port(host, port, args.wait):
         print(f"\n  Port {port} is in use by another program. {APP_NAME} will not stop it.\n"
               f"  Set dashboard_port in {config.CONFIG_FILE} to a free port and start again.\n")
         single_instance.release()
@@ -84,10 +115,14 @@ def main(argv: list[str] | None = None) -> int:
                                      __version__, url, config.get("network"))
     if not args.no_browser:
         threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+    server = uvicorn.Server(uvicorn.Config(app, host=host, port=port, log_level="warning",
+                                           timeout_graceful_shutdown=5))
+    lifecycle.install(lambda: setattr(server, "should_exit", True))
     try:
-        uvicorn.run(app, host=host, port=port, log_level="warning")
+        server.run()
     finally:
         single_instance.release()
+    relaunch_if_requested(raw_argv)
     return 0
 
 

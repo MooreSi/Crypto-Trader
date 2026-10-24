@@ -35,6 +35,7 @@ export interface Account {
 export interface SystemStatus {
   paused: boolean;
   network: string;
+  started_at: number;
   uptime_s: number;
   exchange_ok: boolean;
   last_error: string;

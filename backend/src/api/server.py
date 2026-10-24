@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.src.api.routers import account, engines, events, risk, settings, system, trades
 from backend.src.api.security import LocalOnlyMiddleware
 from backend.src.services.exchange.types import ExchangeError
+from backend.src.utils.lifecycle import NotAvailable
 from backend.src.utils.os_utils import repo_root
 from backend.src.utils.version_history import APP_NAME, __version__
 
@@ -42,6 +43,10 @@ def create_app(lifespan=None) -> FastAPI:
     @app.exception_handler(ExchangeError)
     async def _exchange(_: Request, exc: ExchangeError):
         return JSONResponse({"detail": f"exchange: {exc}"}, status_code=502)
+
+    @app.exception_handler(NotAvailable)
+    async def _not_available(_: Request, exc: NotAvailable):
+        return JSONResponse({"detail": str(exc)}, status_code=409)
 
     _mount_dashboard(app, DIST)
     return app
