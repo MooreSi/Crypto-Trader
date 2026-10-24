@@ -1,0 +1,33 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+.coverage.json
+*.egg-info/
+
+# Never commit: user data, secrets, databases, logs
+config.yaml
+.env
+*.db
+*.db-wal
+*.db-shm
+*.log
+*.joblib
+data/
+backups/
+
+# Admin-channel private CA key: never. ca_cert.pem (public) IS committed.
+ca_key.pem
+**/ca_key.pem
+
+# Frontend: node_modules never; dist IS committed (served by the app)
+frontend/node_modules/
+frontend/tsconfig.tsbuildinfo
+
+# Tooling
+.DS_Store
+.claude/settings.local.json
+.claude/worktrees/
+.preview-data/

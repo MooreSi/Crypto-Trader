@@ -1,0 +1,32 @@
+/* Sources pinned so the stylesheet depends on the dashboard and nothing else. */
+@import "tailwindcss" source(none);
+@source "../index.html";
+@source "./**/*.{ts,tsx}";
+
+/*
+ * Semantic colours: green = profit, red = loss, amber = warning, cyan = this
+ * app's accent. Cyan rather than FOREX Trader's gold on purpose, so the two
+ * dashboards are never mistaken for each other in two browser tabs.
+ */
+@theme {
+  --color-bg: #0b1220;
+  --color-panel: #111a2e;
+  --color-panel-2: #16223b;
+  --color-line: #22304d;
+  --color-text: #e6edf7;
+  --color-muted: #8a9bb8;
+  --color-accent: #22d3ee;
+  --color-profit: #10b981;
+  --color-loss: #f43f5e;
+  --color-warn: #f59e0b;
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+}
+.num { font-variant-numeric: tabular-nums; }

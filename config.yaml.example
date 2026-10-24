@@ -1,0 +1,16 @@
+# Crypto Trader configuration. Copy to the data folder as config.yaml:
+#   macOS    ~/Library/Application Support/CryptoTrader/config.yaml
+#   Windows  %APPDATA%\CryptoTrader\config.yaml
+# Every value can also be set from the dashboard (Settings), or with an
+# environment variable CRYPTO_TRADER_<KEY IN CAPITALS>.
+#
+# The API wallet private key is NEVER stored here; the dashboard puts it in
+# your operating system's keychain.
+
+network: paper            # paper | testnet | mainnet (takes effect on restart)
+account_address: ""       # your Hyperliquid account address, 0x...
+paper_starting_balance: 10000.0
+dashboard_port: 8890      # not 8888: that is FOREX Trader
+admin_console_enabled: true
+admin_console_nickname: ""
+log_level: INFO
