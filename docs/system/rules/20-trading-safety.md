@@ -47,7 +47,7 @@ harmless. Defaults are the owner's "conservative" choice for v0.1:
 |---|---|---|
 | `trading_enabled` | **off** | master switch |
 | engine `live` toggle | **off** per engine | engine hands signals to the executor |
-| `risk_per_trade_pct` | 0.5 | % of equity lost if the stop is hit |
+| `risk_per_trade_pct` | 0.5 | % of equity lost if the stop is hit; settable 0.05 to 100 (owner, 2026-10-24). The notional cap and free margin still limit the real size |
 | `max_leverage` | 3 | cap; the market's own max also applies |
 | `isolated_margin` | on | a position can only lose its own margin |
 | `max_open_positions` | 3 | |

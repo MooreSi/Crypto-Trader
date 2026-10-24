@@ -33,6 +33,13 @@ def test_values_are_clamped_to_their_envelope(fresh_db):
     assert out["risk_per_trade_pct"] == 0.05
 
 
+def test_risk_per_trade_may_go_up_to_100_pct_and_no_further(fresh_db):
+    # Owner's decision 2026-10-24: the envelope goes up to 100%; the default stays 0.5.
+    assert settings.update({"risk_per_trade_pct": 25})["risk_per_trade_pct"] == 25.0
+    assert settings.update({"risk_per_trade_pct": 100})["risk_per_trade_pct"] == 100.0
+    assert settings.update({"risk_per_trade_pct": 250})["risk_per_trade_pct"] == 100.0
+
+
 def test_unknown_keys_and_bad_ladders_are_refused(fresh_db):
     with pytest.raises(ValueError):
         settings.update({"max_leverage_typo": 2})

@@ -21,7 +21,7 @@ from backend.src.services.risk import settings_repo
 
 #: name -> (default, min, max). None bounds mean "not numeric".
 NUMERIC: dict[str, tuple[float, float, float]] = {
-    "risk_per_trade_pct":        (0.5, 0.05, 5.0),
+    "risk_per_trade_pct":        (0.5, 0.05, 100.0),     # cap raised by the owner 2026-10-24
     "max_leverage":              (3, 1, 50),
     "max_open_positions":        (3, 1, 20),
     "max_same_direction":        (2, 1, 20),

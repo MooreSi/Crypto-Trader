@@ -2,6 +2,13 @@
 
 All notable changes to Crypto Trader. Newest first.
 
+## [Unreleased]
+
+### Changed
+- Risk per trade can now be set up to 100% of equity (was 5%). The default
+  stays 0.5%. The max position size cap and free margin still limit how big
+  a trade can get.
+
 ## [0.1.0] - 2026-10-24 - First release
 
 ### Added
