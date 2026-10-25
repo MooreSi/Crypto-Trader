@@ -20,6 +20,11 @@ def markets() -> list[dict]:
     return account_controller.markets()
 
 
+@router.get("/markets/pulse")
+def pulse() -> dict:
+    return account_controller.pulse()
+
+
 @router.get("/markets/{coin}/candles")
 def candles(coin: str, interval: str = "15m", bars: int = 200) -> list[dict]:
     return account_controller.chart(coin, interval, bars)

@@ -33,6 +33,45 @@ Hyperliquid perpetual. Each produces `Setup`s from closed candles; the shared
 
 ## Known things and gotchas
 
+- **Strategy Lab** (2026-10-25): `services/strategies/` holds research
+  generators (`donchian_trend`, `bb_rsi_revert`, `supertrend_flip`) with the
+  same `Setup` interface as the engines. They are listed only in
+  `services/backtest/catalogue.py` and are NOT in `registry.py`: no signal DB,
+  no model, no live toggle. Promoting one to an engine is an owner decision
+  (it also changes the engine list pinned by `tests/api/test_routes.py`).
+- **The backtester** (`services/backtest/`) walks closed bars with the
+  generator seeing only the last 260 closed bars and closed higher-timeframe
+  bars, one trade per coin at a time, entry at the signal bar's close. The
+  simulator applies the live exit plan (ladder, breakeven from the next bar),
+  scores a bar touching stop and target as the stop, and charges a round-trip
+  taker fee in R. It leaves out funding, slippage and the risk gates.
+- First Lab results, BTC, 3000 bars each, 2026-10-25, default ladder and no
+  ML filter: every strategy negative. Profit factor breakout 0.54, reversal
+  0.58, trend_pa 0.53, donchian_trend 0.82 (89 trades on 4h since 2025-06),
+  bb_rsi_revert 0.37, supertrend_flip 0.51. The 1R/2R/3R ladder caps trend
+  followers' winners, which is what they live on; worth testing a trend
+  ladder before judging donchian_trend.
+- **Walk-forward tuning** (`backtest/tuning.py`, 2026-10-25): k+1 equal
+  segments after the 260-bar warm-up; each fold picks the best candidate by
+  profit factor (at least `min_trades` train trades) on segment i and scores
+  it on segment i+1 only. Candidates: the strategy's `grid` (Lab strategies
+  take an optional `p` dict; `DEFAULTS` equal the old constants) x 4 exit
+  ladders x breakeven 0/1. Setups are computed once per parameter set
+  (`runner.signals`) and every exit plan is simulated over them
+  (`runner.trades_from_signals`, which ignores bars after the window end).
+  It writes nothing. Negative control: making the selection score the test
+  window fails `test_choice_is_made_on_train_bars_only`.
+- First walk-forward runs, BTC, 3000 bars, 4 folds, 2026-10-25: donchian_trend
+  tuned -7.2R (45 trades, PF 0.73) vs defaults -12.1R (74, PF 0.72), 25%
+  stable; supertrend_flip tuned -5.6R vs -11.3R, 50% stable; bb_rsi_revert
+  tuned -11.8R vs defaults -4.2R. Tuning lost less in two of three, but
+  nothing was profitable out of sample, and the choices were unstable
+  across folds: no edge found on BTC.
+ (feature importances of the accepted
+  model) so the dashboard can show what each engine learned from.
+- Running a second instance (the preview) on the same IP doubles Hyperliquid
+  info requests; the preview hit HTTP 429 within a minute of starting. Pause a
+  preview's engines when the real app is running.
 - **Breakout measures ATR and regime on the bars BEFORE the trigger**
   (2026-10-24). Measured with it, the breakout bar's own range pushed ATR into
   the top decile and every genuine breakout read as "volatile" and was dropped.

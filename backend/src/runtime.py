@@ -35,8 +35,10 @@ from backend.src import config
 from backend.src.services.engines import registry
 from backend.src.services.events import calendar
 from backend.src.services.exchange import provider
+from backend.src.services.notify import notifier
 from backend.src.services.positions import manager, trades_repo
 from backend.src.services.remote import client as admin_client
+from backend.src.services.risk import day
 from backend.src.utils import clock
 
 log = logging.getLogger(__name__)
@@ -68,12 +70,20 @@ class TradingRuntime:
             self.health.update(exchange_ok=True, positions_at=clock.now(), last_error="",
                                unmanaged_positions=summary["unmanaged_positions"],
                                open_positions=len(account.positions) if account else 0)
+            if account:
+                # Record the UTC day's starting equity as soon as the day
+                # begins, not when the dashboard or a signal first asks.
+                day.start_equity(account.equity)
             if account and clock.now() - self._last_equity_snapshot >= EQUITY_SNAPSHOT_EVERY_S:
                 trades_repo.snapshot_equity(account.equity)
                 self._last_equity_snapshot = clock.now()
         except Exception as exc:
             self.health.update(exchange_ok=False, last_error=str(exc))
             log.warning("[Runtime] positions pass failed: %s", exc)
+        try:
+            notifier.notify_pass()
+        except Exception as exc:
+            log.warning("[Runtime] trade alerts failed: %s", exc)
 
     def engines_pass(self) -> list[dict]:
         if self.paused:

@@ -57,3 +57,31 @@ def clear_agent_key(network: str) -> None:
 
 def has_agent_key(network: str) -> bool:
     return get_agent_key(network) is not None
+
+
+# ── Telegram bot token (trade alerts) ────────────────────────────────────────
+# Not a trading credential, but anyone holding it can post as the bot, so it
+# lives in the keyring too, never in config.yaml.
+_TELEGRAM = "telegram_bot_token"
+
+
+def get_telegram_token() -> Optional[str]:
+    try:
+        return _keyring().get_password(SERVICE, _TELEGRAM) or None
+    except Exception as exc:
+        log.warning("[Secrets] keyring read failed: %s", exc)
+        return None
+
+
+def set_telegram_token(token: str) -> None:
+    token = token.strip()
+    if ":" not in token or len(token) < 20 or any(c.isspace() for c in token):
+        raise ValueError("a Telegram bot token looks like 123456789:AA... (from @BotFather)")
+    _keyring().set_password(SERVICE, _TELEGRAM, token)
+
+
+def clear_telegram_token() -> None:
+    try:
+        _keyring().delete_password(SERVICE, _TELEGRAM)
+    except Exception:
+        pass

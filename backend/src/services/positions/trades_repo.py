@@ -136,3 +136,19 @@ def snapshot_equity(equity: float) -> None:
 def equity_curve(since_ts: float) -> list[dict]:
     return database.get().query(
         "SELECT ts, equity FROM equity_snapshots WHERE ts >= ? ORDER BY ts", (since_ts,))
+
+
+def events_after(last_id: int, limit: int = 50) -> list[dict]:
+    """Audit-trail rows newer than `last_id`, oldest first, with their trade's identity."""
+    rows = database.get().query(
+        "SELECT e.id, e.trade_id, e.ts, e.kind, e.detail, t.coin, t.direction, t.engine, "
+        "t.network FROM trade_events e JOIN trades t ON t.id = e.trade_id "
+        "WHERE e.id > ? ORDER BY e.id LIMIT ?", (last_id, limit))
+    for r in rows:
+        r["detail"] = json.loads(r["detail"])
+    return rows
+
+
+def last_event_id() -> int:
+    row = database.get().query_one("SELECT COALESCE(MAX(id), 0) AS id FROM trade_events")
+    return int(row["id"]) if row else 0

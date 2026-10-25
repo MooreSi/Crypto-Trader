@@ -69,6 +69,10 @@ DEFAULTS: dict[str, Any] = {
     # the owner wants to see every install; turning it off sends nothing.
     "admin_console_enabled": True,
     "admin_console_nickname": "",
+    # Trade alerts to the owner's Telegram chat. Off until set up on the
+    # Settings page; the bot token is kept in the OS keyring.
+    "telegram_enabled": False,
+    "telegram_chat_id": "",
     "log_level": "INFO",
 }
 

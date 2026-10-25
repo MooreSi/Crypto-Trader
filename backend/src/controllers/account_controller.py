@@ -18,3 +18,7 @@ def markets() -> list[dict]:
 
 def chart(coin: str, interval: str, bars: int) -> list[dict]:
     return account_view.chart(coin, interval, bars)
+
+
+def pulse() -> dict:
+    return account_view.pulse()

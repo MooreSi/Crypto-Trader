@@ -48,6 +48,8 @@ MIN_TRAIN_SAMPLES = 60
 HOLDOUT_FRACTION = 0.2
 #: One-sided 95% z-score for the holdout AUC test.
 AUC_Z = 1.645
+#: How many of the model's most important features the train report lists.
+TOP_FEATURES = 8
 
 
 def _auc(y: Sequence[int], p: Sequence[float]) -> float:
@@ -166,6 +168,8 @@ class EngineModel:
         path = self._path(len(self.names))
         joblib.dump(final, path)
         report["accepted"] = True
+        ranked = sorted(zip(self.names, final.feature_importances_), key=lambda x: -x[1])
+        report["top_features"] = [[n, round(float(v), 4)] for n, v in ranked[:TOP_FEATURES]]
         path.with_suffix(".json").write_text(json.dumps(report))
         with self._lock:
             self._model, self._width, self.meta = final, len(self.names), dict(report)

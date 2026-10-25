@@ -42,3 +42,22 @@ class AgentKey(BaseModel):
 class AdminConsole(BaseModel):
     enabled: bool
     nickname: Optional[str] = ""
+
+
+class BacktestRequest(BaseModel):
+    strategy: str
+    coin: str = Field(min_length=1, max_length=20)
+    bars: int = 1500
+
+
+class Telegram(BaseModel):
+    enabled: bool
+    chat_id: str = ""
+    token: str = ""
+
+
+class TuneRequest(BaseModel):
+    strategy: str
+    coin: str = Field(min_length=1, max_length=20)
+    bars: int = 3000
+    folds: int = Field(default=4, ge=1, le=8)

@@ -42,6 +42,7 @@ export interface SystemStatus {
   positions_at: number | null;
   engines_at: number | null;
   unmanaged_positions: string[];
+  open_positions?: number;
   admin_console: { connected: boolean; host: string; last_error: string; admitted: boolean };
 }
 
@@ -65,7 +66,7 @@ export interface EngineStatus {
   last_cycle: number | null;
   last_error: string;
   stats: { total: number; tracking: number; wins: number; losses: number; expired: number; avg_r: number; executed: number };
-  model: { trained: boolean; meta: Record<string, unknown>; last_report: Record<string, unknown> };
+  model: { trained: boolean; meta: EngineModelReport; last_report: EngineModelReport };
 }
 
 export interface EngineSignal {
@@ -148,6 +149,9 @@ export interface AppSettings {
   paper_starting_balance: number;
   dashboard_port: number;
   data_dir: string;
+  telegram_enabled: boolean;
+  telegram_chat_id: string;
+  has_telegram_token: boolean;
 }
 
 export type RiskSettings = Record<string, number | boolean | string[] | number[][]>;
@@ -157,4 +161,142 @@ export interface Release {
   date: string;
   title: string;
   notes: string[];
+}
+
+export interface EngineModelReport {
+  holdout_auc?: number;
+  auc_needed?: number;
+  base_rate?: number;
+  samples?: number;
+  accepted?: boolean;
+  reason?: string;
+  top_features?: [string, number][];
+  handover?: boolean;
+}
+
+export interface PulseRow {
+  coin: string;
+  price: number;
+  change_pct: number;
+  funding_pct_h: number;
+  volume_usd: number;
+}
+
+export interface MarketPulse {
+  markets: number;
+  breadth_pct: number;
+  mood: "risk-on" | "risk-off" | "mixed";
+  btc_change_pct: number;
+  avg_change_pct: number;
+  funding_pct_h: number;
+  open_interest_usd: number;
+  volume_usd: number;
+  crowded_longs: PulseRow[];
+  crowded_shorts: PulseRow[];
+  gainers: PulseRow[];
+  losers: PulseRow[];
+}
+
+export interface PerfBlock {
+  trades: number;
+  wins: number;
+  win_rate: number | null;
+  net_pnl: number;
+  profit_factor: number | null;
+  expectancy_r: number | null;
+}
+
+export interface Analytics {
+  closed: number;
+  net_pnl: number;
+  win_rate: number | null;
+  profit_factor: number | null;
+  expectancy_r: number | null;
+  avg_win: number | null;
+  avg_loss: number | null;
+  best: number | null;
+  worst: number | null;
+  longest_losing_streak: number;
+  avg_hold_hours: number | null;
+  max_drawdown_pct: number;
+  sharpe: number | null;
+  by_engine: Record<string, PerfBlock>;
+}
+
+export interface StrategyInfo {
+  name: string;
+  interval: string;
+  htf: string | null;
+  kind: "engine" | "lab";
+  about: string;
+}
+
+export interface BacktestTrade {
+  opened_at: number;
+  closed_at: number;
+  direction: "long" | "short";
+  entry: number;
+  stop: number;
+  r: number;
+  exit: string;
+  tp_hits: number;
+  reason: string;
+}
+
+export interface BacktestResult {
+  strategy: string;
+  coin: string;
+  interval: string;
+  bars: number;
+  from: number | null;
+  to: number | null;
+  ladder: number[][];
+  summary: {
+    trades: number;
+    wins: number;
+    win_rate: number | null;
+    total_r: number;
+    avg_r: number | null;
+    profit_factor: number | null;
+    best_r: number | null;
+    worst_r: number | null;
+    max_drawdown_r: number;
+    risk_pct: number;
+    compounded_return_pct: number;
+    curve: { t: number; r: number }[];
+  };
+  trades: BacktestTrade[];
+}
+
+export type BacktestSummary = BacktestResult["summary"];
+
+export interface TuneFold {
+  train_from: number;
+  test_from: number;
+  test_to: number;
+  chosen: Record<string, number | string>;
+  train: Omit<BacktestSummary, "curve">;
+  test: Omit<BacktestSummary, "curve">;
+  test_default: Omit<BacktestSummary, "curve">;
+  fallback: boolean;
+}
+
+export interface TuneResult {
+  strategy: string;
+  coin: string;
+  interval: string;
+  bars: number;
+  from: number | null;
+  to: number | null;
+  grid: Record<string, number[]>;
+  defaults: Record<string, number>;
+  folds: TuneFold[];
+  oos: BacktestSummary;
+  oos_default: BacktestSummary;
+  proposal: Record<string, unknown> & { ladder: string; tp_ladder: number[][]; breakeven_after_tp: number };
+  stability: number;
+  beats_default: boolean;
+  profitable: boolean;
+  candidates: number;
+  min_trades: number;
 }

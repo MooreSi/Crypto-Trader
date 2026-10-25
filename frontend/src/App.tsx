@@ -1,20 +1,18 @@
 import { useEffect, useState } from "react";
-import clsx from "clsx";
 import { api } from "@/api/client";
 import type { SystemStatus } from "@/api/types";
 import { usePoll } from "@/hooks/usePoll";
 import { Header } from "@/components/shell/Header";
+import { Logo, MobileNav, Sidebar, TABS, tabLabel, type Tab } from "@/components/shell/Sidebar";
 import { DashboardPage } from "@/components/dashboard/DashboardPage";
 import { MarketsPage } from "@/components/markets/MarketsPage";
 import { EnginesPage } from "@/components/engines/EnginesPage";
+import { LabPage } from "@/components/lab/LabPage";
 import { TradesPage } from "@/components/trades/TradesPage";
 import { RiskPage } from "@/components/risk/RiskPage";
 import { EventsPage } from "@/components/events/EventsPage";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { AboutPage } from "@/components/about/AboutPage";
-
-const TABS = ["Dashboard", "Markets", "Engines", "Trades", "Risk", "Events", "Settings", "About"] as const;
-type Tab = (typeof TABS)[number];
 
 function initialTab(): Tab {
   const h = decodeURIComponent(window.location.hash.slice(1));
@@ -33,28 +31,30 @@ export default function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
+  useEffect(() => { document.title = `${tabLabel(tab)} - Crypto Trader`; }, [tab]);
+
   return (
-    <div className="flex min-h-full flex-col">
-      <Header status={status} reload={reload} />
-      <nav className="flex gap-1 overflow-x-auto border-b border-line bg-panel px-4">
-        {TABS.map((t) => (
-          <button key={t} type="button" onClick={() => go(t)}
-                  className={clsx("whitespace-nowrap border-b-2 px-3 py-2 text-sm",
-                    t === tab ? "border-accent text-text" : "border-transparent text-muted hover:text-text")}>
-            {t}
-          </button>
-        ))}
-      </nav>
-      <main className="mx-auto w-full max-w-7xl flex-1 p-4">
-        {tab === "Dashboard" && <DashboardPage status={status} />}
-        {tab === "Markets" && <MarketsPage />}
-        {tab === "Engines" && <EnginesPage />}
-        {tab === "Trades" && <TradesPage />}
-        {tab === "Risk" && <RiskPage />}
-        {tab === "Events" && <EventsPage />}
-        {tab === "Settings" && <SettingsPage />}
-        {tab === "About" && <AboutPage />}
-      </main>
+    <div className="flex min-h-full">
+      <Sidebar tab={tab} go={go} status={status} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center border-b border-line/70 bg-bg-2/80 px-4 py-3 lg:hidden"><Logo /></div>
+        <MobileNav tab={tab} go={go} />
+        <Header status={status} reload={reload} title={tabLabel(tab)} />
+        <main key={tab} className="mx-auto w-full max-w-[1400px] flex-1 p-4 sm:p-6">
+          {tab === "Dashboard" && <DashboardPage status={status} go={go} />}
+          {tab === "Markets" && <MarketsPage />}
+          {tab === "Engines" && <EnginesPage />}
+          {tab === "Lab" && <LabPage />}
+          {tab === "Trades" && <TradesPage />}
+          {tab === "Risk" && <RiskPage />}
+          {tab === "Events" && <EventsPage />}
+          {tab === "Settings" && <SettingsPage />}
+          {tab === "About" && <AboutPage />}
+        </main>
+        <footer className="px-6 pb-6 text-center text-[11px] text-dim">
+          Not financial advice. Leveraged crypto can lose more than you expect, fast. Backtests and paper results flatter live ones.
+        </footer>
+      </div>
     </div>
   );
 }

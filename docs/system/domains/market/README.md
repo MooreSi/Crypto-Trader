@@ -7,6 +7,15 @@
 swings), `levels.py` (swings, prior day, round numbers scaled to price),
 `regime.py`, `sessions.py`, `universe.py`.
 
+
+- **Watchlist matching ignores case** (2026-10-25). Settings store coins
+  upper-cased; Hyperliquid names some in mixed case (`kPEPE`). `universe.select`
+  maps back to the exchange's name. The dashboard compares with `sameCoin`.
+- **`pulse.py`** summarises snapshots only (no candles): breadth of the top 30
+  by volume, volume-weighted funding, crowded sides by funding, movers, and a
+  mood label. Information only; no gate reads it.
+- `indicators.py` gained `donchian` (excludes the latest bar), `bollinger_bands`
+  and `supertrend` for the Strategy Lab, pinned in `test_indicators.py`.
 ## Constraints
 
 - Engines decide on **closed** candles only.

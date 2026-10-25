@@ -12,7 +12,7 @@ fills all three so no column can be mistaken for a FOREX Trader install:
     name      "Crypto Trader - <machine>"    (unless the user set a nickname,
                                               which still gets the prefix)
     hostname  "<machine> [Crypto Trader]"
-    version   "Crypto Trader 0.1.0"
+    version   "Crypto Trader 0.2.0"
 
 It also sends `app: "crypto-trader"` and `app_name`, which today's server
 ignores and a future console can show as its own column.

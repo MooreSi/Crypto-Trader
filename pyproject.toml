@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crypto-trader"
-version = "0.1.0"
+version = "0.2.0"
 description = "Crypto Trader: automated Hyperliquid perpetuals trading with research engines, a risk governor and a React dashboard"
 requires-python = ">=3.11"
 license = { text = "AGPL-3.0-only" }

@@ -159,3 +159,64 @@ def pct_rank(values: Sequence[float], value: float) -> float:
     if not values:
         return 0.5
     return sum(1 for v in values if v < value) / len(values)
+
+
+def donchian(candles: Sequence[Candle], period: int) -> Optional[tuple[float, float]]:
+    """(highest high, lowest low) of the `period` bars BEFORE the latest one.
+
+    The latest bar is left out so "close above the channel" means a break of
+    the channel as it stood when the bar opened (the Turtle rule).
+    """
+    if len(candles) < period + 1:
+        return None
+    window = candles[-period - 1:-1]
+    return max(c.high for c in window), min(c.low for c in window)
+
+
+def bollinger_bands(closes: Sequence[float], period: int = 20,
+                    k: float = 2.0) -> Optional[tuple[float, float, float]]:
+    """(lower, middle, upper) of the latest bar, population standard deviation."""
+    if len(closes) < period:
+        return None
+    window = closes[-period:]
+    mean = sum(window) / period
+    sd = math.sqrt(sum((x - mean) ** 2 for x in window) / period)
+    return mean - k * sd, mean, mean + k * sd
+
+
+def supertrend(candles: Sequence[Candle], period: int = 10,
+               mult: float = 3.0) -> list[tuple[Optional[float], int]]:
+    """(line, direction) per bar: direction 1 = up (line below price), -1 = down.
+
+    The standard definition: ATR (Wilder) bands around (high + low) / 2, each
+    band only allowed to move in the trend's favour, and the direction flips
+    when a close crosses the active band. Bars before the first ATR are
+    `(None, 0)`.
+    """
+    n = len(candles)
+    out: list[tuple[Optional[float], int]] = [(None, 0)] * n
+    if n < period + 1:
+        return out
+    trs = true_ranges(candles)
+    atr_v = sum(trs[1:period + 1]) / period
+    upper = lower = 0.0
+    direction = 1
+    for i in range(period, n):
+        if i > period:
+            atr_v = (atr_v * (period - 1) + trs[i]) / period
+        c = candles[i]
+        mid = (c.high + c.low) / 2
+        basic_up, basic_lo = mid + mult * atr_v, mid - mult * atr_v
+        prev_close = candles[i - 1].close
+        if i == period:
+            upper, lower = basic_up, basic_lo
+            direction = 1 if c.close >= mid else -1
+        else:
+            upper = basic_up if basic_up < upper or prev_close > upper else upper
+            lower = basic_lo if basic_lo > lower or prev_close < lower else lower
+            if direction == -1 and c.close > upper:
+                direction = 1
+            elif direction == 1 and c.close < lower:
+                direction = -1
+        out[i] = (lower if direction == 1 else upper, direction)
+    return out

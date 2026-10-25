@@ -25,5 +25,9 @@ def stats() -> dict:
     return trades_repo_view.stats()
 
 
+def analytics() -> dict:
+    return trades_repo_view.analytics()
+
+
 def close(trade_id: int) -> bool:
     return manual.close(trade_id)

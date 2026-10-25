@@ -11,6 +11,27 @@ from __future__ import annotations
 
 RELEASES: list[dict] = [
     {
+        "version": "0.2.0",
+        "date": "2026-10-25",
+        "title": "Strategy Lab, analytics and a new dashboard",
+        "notes": [
+            "Strategy Lab: backtest any engine, or three research strategies (Donchian trend "
+            "ensemble, Bollinger + RSI reversion, Supertrend flip), with the app's own exit plan.",
+            "Walk-forward tuning: settings chosen on one stretch of history are scored only on "
+            "the next, against your defaults. A proposal only; nothing changes by itself.",
+            "Performance analytics: profit factor, expectancy in R, Sharpe, max drawdown, "
+            "losing streak and a per-engine breakdown.",
+            "Market pulse: breadth, funding, crowded longs and shorts, top movers.",
+            "Telegram trade alerts for opens, take-profits, stop moves and closes.",
+            "Each engine shows the features its ML model learned most from.",
+            "A redesigned dashboard with a sidebar, new cards and charts that resize.",
+            "Fixed: a trailed stop was moved back to breakeven when a later TP filled; "
+            "take-profits below Hyperliquid's minimum were rejected when they fired; "
+            "mixed-case coins (kPEPE) on the watchlist were never scanned; the daily loss "
+            "limit could count from a figure taken after a loss.",
+        ],
+    },
+    {
         "version": "0.1.0",
         "date": "2026-10-24",
         "title": "First release",

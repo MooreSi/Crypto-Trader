@@ -5,8 +5,8 @@ from backend.src.utils import version_history
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_version_is_0_1_0_everywhere():
-    assert version_history.__version__ == "0.1.0"
+def test_version_is_0_2_0_everywhere():
+    assert version_history.__version__ == "0.2.0"
     assert (ROOT / "VERSION").read_text().strip() == version_history.__version__
     assert f"## [{version_history.__version__}]" in (ROOT / "CHANGELOG.md").read_text()
 

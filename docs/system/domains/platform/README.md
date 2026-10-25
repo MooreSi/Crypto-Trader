@@ -21,6 +21,12 @@ network, open the main DB, start the runtime loops.
 
 ## Known things and gotchas
 
+- **Telegram alerts** (`services/notify/`, 2026-10-25) read `trade_events`
+  after each positions pass: no hook in the order path. The cursor
+  (`telegram_last_event_id`) starts at the newest event when alerts are first
+  on (no backlog), and moves only after a send succeeds. The bot token is in
+  the keyring (`secrets.get_telegram_token`); the send error never includes
+  the URL, which contains the token.
 - The admin console's live end-to-end (register, appear in Remote Clients as
   "Crypto Trader - ...") has **not** been exercised: it would register a client
   on the owner's console and send a "New install" notification. Unit tests pin

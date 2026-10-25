@@ -1,76 +1,86 @@
 import { useState } from "react";
+import { History, ListChecks, ShieldAlert, Timer } from "lucide-react";
 import { api } from "@/api/client";
-import type { GateDecision, Trade, TradeEvent } from "@/api/types";
+import type { Analytics, GateDecision, Trade } from "@/api/types";
 import { usePoll } from "@/hooks/usePoll";
-import { price, pnlClass, signed, time } from "@/lib/format";
-import { Badge, Button, Card, ErrorLine, Stat, Table, confirmAction } from "@/components/shared/ui";
+import { pct, price, pnlClass, r, signed, time } from "@/lib/format";
+import { Badge, Button, Card, ErrorLine, Notice, Side, Stat, Table, confirmAction } from "@/components/shared/ui";
+import { AnalyticsCard } from "./AnalyticsCard";
+import { TradeLog } from "./TradeLog";
 
 export function TradesPage() {
   const open = usePoll(() => api.get<Trade[]>("/api/trades/open"), 5000);
   const hist = usePoll(() => api.get<Trade[]>("/api/trades/history?limit=200"), 15000);
   const stats = usePoll(() => api.get<{ closed: number; net_pnl: number; win_rate: number | null }>("/api/trades/stats"), 15000);
+  const analytics = usePoll(() => api.get<Analytics>("/api/trades/analytics"), 30000);
   const [shown, setShown] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
 
   const close = async (t: Trade) => {
     if (!confirmAction(`Close #${t.id} ${t.direction} ${t.coin} at market now?`)) return;
     try {
-      const r = await api.post<{ closed: boolean }>(`/api/trades/${t.id}/close`);
-      setMsg(r.closed ? `#${t.id} closed` : `#${t.id}: the exchange refused the close; see the log`);
+      const res = await api.post<{ closed: boolean }>(`/api/trades/${t.id}/close`);
+      setMsg(res.closed ? `#${t.id} closed` : `#${t.id}: the exchange refused the close; see the log`);
       open.reload(); hist.reload();
     } catch (e) { setMsg(String(e)); }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <ErrorLine error={open.error || hist.error} />
-      {msg && <div className="rounded-md border border-line bg-panel-2 px-3 py-2 text-sm">{msg}</div>}
-      <div className="grid grid-cols-3 gap-3">
+      {msg && <Notice>{msg}</Notice>}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Closed trades" value={stats.data?.closed ?? "-"} />
         <Stat label="Net P&L (USDC)" value={signed(stats.data?.net_pnl)} tone={pnlClass(stats.data?.net_pnl)} />
-        <Stat label="Win rate" value={stats.data?.win_rate == null ? "-" : `${(stats.data.win_rate * 100).toFixed(0)}%`} />
+        <Stat label="Win rate" value={stats.data?.win_rate == null ? "-" : pct(stats.data.win_rate * 100, 0)} />
+        <Stat label="Open now" value={open.data?.length ?? "-"} />
       </div>
-      <Card title={`Open trades (${open.data?.length ?? 0})`}>
+      <AnalyticsCard a={analytics.data} />
+      <Card title="Open trades" subtitle="Managed by the app; exits sit on the exchange" icon={<Timer className="h-4 w-4" />}>
         <Table head={["#", "Engine", "Coin", "Side", "Entry", "Size", "Stop", "TPs hit", "Lev", "Risk", "Booked", ""]}
+               align={["l", "l", "l", "l", "r", "r", "r", "r", "r", "r", "r", "r"]}
                empty={open.data && open.data.length === 0 ? "No open trades" : undefined}>
           {open.data?.map((t) => (
             <tr key={t.id}>
-              <td className="px-2 py-1.5">{t.id}</td>
-              <td className="px-2 py-1.5">{t.engine}</td>
-              <td className="px-2 py-1.5 font-medium">{t.coin}</td>
-              <td className="px-2 py-1.5"><Badge tone={t.direction === "long" ? "profit" : "loss"}>{t.direction}</Badge></td>
-              <td className="px-2 py-1.5">{price(t.entry_price)}</td>
-              <td className="px-2 py-1.5">{t.size}</td>
-              <td className="px-2 py-1.5">{price(t.stop_loss)}{t.tp_hit > 0 && Math.abs(t.stop_loss - t.entry_price) <= t.entry_price * 1e-4 && <Badge tone="accent"> BE</Badge>}</td>
-              <td className="px-2 py-1.5">{t.tp_hit}/{t.take_profits.length}</td>
-              <td className="px-2 py-1.5">{t.leverage}x</td>
-              <td className="px-2 py-1.5">${t.risk_usd.toFixed(2)}</td>
-              <td className={`px-2 py-1.5 ${pnlClass(t.net_pnl)}`}>{signed(t.net_pnl)}</td>
-              <td className="px-2 py-1.5 space-x-1 whitespace-nowrap">
-                <Button onClick={() => setShown(t.id)}>Log</Button>
-                <Button tone="danger" onClick={() => close(t)}>Close</Button>
+              <td className="text-dim">{t.id}</td>
+              <td className="capitalize">{t.engine.replace("_", " ")}</td>
+              <td className="font-semibold">{t.coin}</td>
+              <td><Side direction={t.direction} /></td>
+              <td className="text-right">{price(t.entry_price)}</td>
+              <td className="text-right">{t.size}</td>
+              <td className="text-right">{price(t.stop_loss)}{t.tp_hit > 0 && Math.abs(t.stop_loss - t.entry_price) <= t.entry_price * 1e-4 && <> <Badge tone="accent">BE</Badge></>}</td>
+              <td className="text-right">{t.tp_hit}/{t.take_profits.length}</td>
+              <td className="text-right">{t.leverage}x</td>
+              <td className="text-right">${t.risk_usd.toFixed(2)}</td>
+              <td className={`text-right ${pnlClass(t.net_pnl)}`}>{signed(t.net_pnl)}</td>
+              <td className="whitespace-nowrap text-right">
+                <span className="inline-flex gap-1">
+                  <Button size="sm" tone="ghost" onClick={() => setShown(t.id)}>Log</Button>
+                  <Button size="sm" tone="danger" onClick={() => close(t)}>Close</Button>
+                </span>
               </td>
             </tr>
           ))}
         </Table>
       </Card>
       {shown !== null && <TradeLog id={shown} onClose={() => setShown(null)} />}
-      <Card title="History">
+      <Card title="History" subtitle="Click a row for its full audit trail" icon={<History className="h-4 w-4" />}>
         <Table head={["#", "Opened", "Engine", "Coin", "Side", "Entry", "Exit", "Reason", "Net", "R", "Network"]}
+               align={["l", "l", "l", "l", "l", "r", "r", "l", "r", "r", "l"]}
                empty={hist.data && hist.data.length === 0 ? "No trades yet" : undefined}>
           {hist.data?.map((t) => (
-            <tr key={t.id} className="cursor-pointer hover:bg-panel-2" onClick={() => setShown(t.id)}>
-              <td className="px-2 py-1.5">{t.id}</td>
-              <td className="whitespace-nowrap px-2 py-1.5">{time(t.opened_at)}</td>
-              <td className="px-2 py-1.5">{t.engine}</td>
-              <td className="px-2 py-1.5 font-medium">{t.coin}</td>
-              <td className="px-2 py-1.5">{t.direction}</td>
-              <td className="px-2 py-1.5">{price(t.entry_price)}</td>
-              <td className="px-2 py-1.5">{price(t.close_price)}</td>
-              <td className="px-2 py-1.5 text-xs">{t.close_reason ?? t.status}</td>
-              <td className={`px-2 py-1.5 ${pnlClass(t.net_pnl)}`}>{signed(t.net_pnl)}</td>
-              <td className="px-2 py-1.5">{t.r_achieved == null ? "-" : t.r_achieved.toFixed(2)}</td>
-              <td className="px-2 py-1.5"><Badge>{t.network}</Badge></td>
+            <tr key={t.id} className="cursor-pointer" onClick={() => setShown(t.id)}>
+              <td className="text-dim">{t.id}</td>
+              <td className="whitespace-nowrap">{time(t.opened_at)}</td>
+              <td className="capitalize">{t.engine.replace("_", " ")}</td>
+              <td className="font-semibold">{t.coin}</td>
+              <td><Side direction={t.direction} /></td>
+              <td className="text-right">{price(t.entry_price)}</td>
+              <td className="text-right">{price(t.close_price)}</td>
+              <td className="text-xs text-muted">{t.close_reason ?? t.status}</td>
+              <td className={`text-right font-medium ${pnlClass(t.net_pnl)}`}>{signed(t.net_pnl)}</td>
+              <td className={`text-right ${pnlClass(t.r_achieved)}`}>{r(t.r_achieved)}</td>
+              <td><Badge>{t.network}</Badge></td>
             </tr>
           ))}
         </Table>
@@ -80,38 +90,23 @@ export function TradesPage() {
   );
 }
 
-function TradeLog({ id, onClose }: { id: number; onClose: () => void }) {
-  const { data } = usePoll(() => api.get<TradeEvent[]>(`/api/trades/${id}/events`), 10000, [id]);
-  return (
-    <Card title={`Trade #${id}: every change`} right={<Button onClick={onClose}>Hide</Button>}>
-      <ul className="space-y-2 text-sm">
-        {data?.map((e, i) => (
-          <li key={i} className="rounded border border-line bg-panel-2 px-3 py-2">
-            <div className="flex justify-between"><Badge tone="accent">{e.kind}</Badge><span className="text-xs text-muted">{time(e.ts)}</span></div>
-            <pre className="mt-1 overflow-x-auto whitespace-pre-wrap text-xs text-muted">{JSON.stringify(e.detail, null, 1)}</pre>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
-}
-
 function Decisions() {
   const { data } = usePoll(() => api.get<GateDecision[]>("/api/trades/decisions?limit=50"), 15000);
   return (
-    <Card title="Risk gate decisions (latest 50)">
+    <Card title="Risk gate decisions" subtitle="Latest 50 signals that reached the gates" icon={<ShieldAlert className="h-4 w-4" />}
+          right={<ListChecks className="h-4 w-4 text-dim" />}>
       <Table head={["Time", "Engine", "Coin", "Side", "Result", "First refusal"]}
              empty={data && data.length === 0 ? "Nothing reached the gates yet (an engine must be live)" : undefined}>
         {data?.map((d) => {
           const refusal = d.decisions.find((x) => !x.passed);
           return (
             <tr key={d.id}>
-              <td className="whitespace-nowrap px-2 py-1.5">{time(d.ts)}</td>
-              <td className="px-2 py-1.5">{d.engine}</td>
-              <td className="px-2 py-1.5">{d.coin}</td>
-              <td className="px-2 py-1.5">{d.direction}</td>
-              <td className="px-2 py-1.5">{d.passed ? <Badge tone="profit">placed</Badge> : <Badge tone="warn">refused</Badge>}</td>
-              <td className="px-2 py-1.5 text-xs text-muted">{refusal ? `${refusal.gate}: ${refusal.detail}` : "-"}</td>
+              <td className="whitespace-nowrap">{time(d.ts)}</td>
+              <td className="capitalize">{d.engine.replace("_", " ")}</td>
+              <td className="font-medium">{d.coin}</td>
+              <td><Side direction={d.direction} /></td>
+              <td>{d.passed ? <Badge tone="profit">placed</Badge> : <Badge tone="warn">refused</Badge>}</td>
+              <td className="text-xs text-muted">{refusal ? `${refusal.gate}: ${refusal.detail}` : "-"}</td>
             </tr>
           );
         })}

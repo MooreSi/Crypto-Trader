@@ -32,7 +32,7 @@ identifies itself in every column the console already shows:
 |---|---|
 | name (nickname) | `Crypto Trader - <machine or nickname>` |
 | hostname | `<machine> [Crypto Trader]` |
-| version | `Crypto Trader 0.1.0` |
+| version | `Crypto Trader 0.2.0` |
 
 It also sends `app: "crypto-trader"`, which a future console version can show
 as its own column. It never sends `machine_uuid` (the server grants admin

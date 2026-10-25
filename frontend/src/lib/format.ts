@@ -39,3 +39,24 @@ export function pnlClass(n: number | null | undefined): string {
   if (!n) return "text-muted";
   return n > 0 ? "text-profit" : "text-loss";
 }
+
+export function pct(n: number | null | undefined, digits = 1, sign = false): string {
+  if (n === null || n === undefined || Number.isNaN(n)) return "-";
+  return (sign && n > 0 ? "+" : "") + n.toFixed(digits) + "%";
+}
+
+export function r(n: number | null | undefined, digits = 2): string {
+  if (n === null || n === undefined || Number.isNaN(n)) return "-";
+  return (n > 0 ? "+" : "") + n.toFixed(digits) + "R";
+}
+
+export function duration(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined) return "-";
+  const d = Math.floor(seconds / 86400), h = Math.floor((seconds % 86400) / 3600), m = Math.floor((seconds % 3600) / 60);
+  return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
+}
+
+/** Same coin whatever the case: the settings store KPEPE, the exchange says kPEPE. */
+export function sameCoin(a: string, b: string): boolean {
+  return a.toUpperCase() === b.toUpperCase();
+}

@@ -21,7 +21,10 @@ def select(snapshots: list[MarketSnapshot], settings: dict) -> list[str]:
     min_vol = float(settings.get("min_day_volume_usd", 0))
     eligible = {s.coin: s for s in snapshots
                 if s.coin.upper() not in block and s.day_notional_volume >= min_vol}
-    watch = [c for c in settings.get("watchlist", []) if c in eligible]
+    # The settings store coins upper-cased; the exchange names some in mixed
+    # case (kPEPE), so match without case and return the exchange's name.
+    by_upper = {c.upper(): c for c in eligible}
+    watch = [by_upper[c.upper()] for c in settings.get("watchlist", []) if c.upper() in by_upper]
     if watch:
         return watch
     ranked = sorted(eligible.values(), key=lambda s: s.day_notional_volume, reverse=True)

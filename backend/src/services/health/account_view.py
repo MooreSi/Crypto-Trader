@@ -5,6 +5,7 @@ from dataclasses import asdict
 
 from backend.src.services.exchange import provider
 from backend.src.services.market import candles as candle_src
+from backend.src.services.market import pulse as market_pulse
 from backend.src.services.market import universe
 from backend.src.services.positions import trades_repo
 from backend.src.services.risk import day, settings as risk_settings
@@ -50,3 +51,7 @@ def chart(coin: str, interval: str, bars: int) -> list[dict]:
         raise ValueError(f"interval must be one of {list(candle_src.INTERVAL_MS)}")
     rows = candle_src.fetch(provider.get(), coin, interval, min(max(bars, 10), 1000))
     return [asdict(c) for c in rows]
+
+
+def pulse() -> dict:
+    return market_pulse.summarise(provider.get().snapshots(), top_n=30)

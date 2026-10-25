@@ -2,14 +2,40 @@
 
 All notable changes to Crypto Trader. Newest first.
 
-## [Unreleased]
+## [0.2.0] - 2026-10-25 - Strategy Lab, analytics and a new dashboard
 
 ### Added
+- Walk-forward tuning in the Strategy Lab: settings are chosen on one stretch
+  of history and scored only on the next, against your defaults on the same
+  bars. It shows a proposal and never changes a setting.
+- Strategy Lab: backtest any engine, or one of three research strategies
+  (Donchian trend ensemble, Bollinger + RSI reversion, Supertrend flip), on
+  Hyperliquid history with the app's own exit plan. Read-only: Lab strategies
+  have no live switch.
+- Performance analytics on the Trades page and dashboard: profit factor,
+  expectancy in R, Sharpe, max drawdown, losing streak, per-engine table.
+- Market pulse on the dashboard: breadth, volume-weighted funding, crowded
+  longs and shorts, top movers.
+- Telegram trade alerts (Settings): opens, take-profits, stop moves, closes.
+  The bot token is kept in the OS keychain.
+- Each engine's model now reports the features it learned most from.
+- A redesigned dashboard: sidebar navigation, new cards, charts that resize.
 - Restart and Stop buttons next to Pause in the dashboard header. Both shut
   the app down cleanly; Restart starts the same checkout again and the page
   reloads when it is back.
 
 ### Fixed
+- A trailed stop is no longer moved back to breakeven when a later TP fills.
+  Before, with trailing on, TP2 filling loosened a stop that was already in
+  profit back to the entry price.
+- A trade closed by its only (merged) take-profit is recorded as TP1, not as
+  the last rung of the ladder.
+- A watched coin named in mixed case (kPEPE, kBONK) is scanned. Before, the
+  watchlist stored it upper-cased and it never matched.
+- The day's starting equity, which the daily loss limit counts from, is
+  recorded from the first positions pass of the UTC day, not when the
+  dashboard or a signal first asks.
+- Clearing a number on the Risk page no longer saves the field's minimum.
 - Take-profit orders are never smaller than $11.20. Smaller ladder rungs are
   merged into the rung before them, down to a single TP1 for the whole
   position. Before, on small positions Hyperliquid rejected every TP when it

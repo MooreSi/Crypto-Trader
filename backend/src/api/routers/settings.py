@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.src.api.schemas import AccountAddress, AdminConsole, AgentKey, Network
+from backend.src.api.schemas import AccountAddress, AdminConsole, AgentKey, Network, Telegram
 from backend.src.controllers import settings_controller
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -34,3 +34,13 @@ def clear_agent_key(network: str) -> dict:
 @router.post("/admin-console")
 def admin_console(body: AdminConsole) -> dict:
     return settings_controller.set_admin_console(body.enabled, body.nickname or "")
+
+
+@router.post("/telegram")
+def telegram(body: Telegram) -> dict:
+    return settings_controller.set_telegram(body.enabled, body.chat_id, body.token)
+
+
+@router.post("/telegram/test")
+def telegram_test() -> dict:
+    return settings_controller.test_telegram()

@@ -12,6 +12,7 @@ import re
 from backend.src import config
 from backend.src.config import secrets
 from backend.src.services.exchange import provider
+from backend.src.services.notify import notifier
 
 _ADDRESS = re.compile(r"^0x[0-9a-fA-F]{40}$")
 
@@ -30,6 +31,9 @@ def get() -> dict:
         "paper_starting_balance": config.get("paper_starting_balance"),
         "dashboard_port": config.get("dashboard_port"),
         "data_dir": str(config.USER_DATA_DIR),
+        "telegram_enabled": bool(config.get("telegram_enabled", False)),
+        "telegram_chat_id": str(config.get("telegram_chat_id", "") or ""),
+        "has_telegram_token": secrets.get_telegram_token() is not None,
     }
 
 
@@ -68,3 +72,19 @@ def set_admin_console(enabled: bool, nickname: str) -> dict:
                          "admin_console_nickname": nickname.strip()[:40]})
     return get()
 
+
+
+def set_telegram(enabled: bool, chat_id: str, token: str) -> dict:
+    """Trade alerts. A blank token keeps the stored one."""
+    chat_id = chat_id.strip()
+    if chat_id and not chat_id.lstrip("-").isdigit():
+        raise ValueError("a Telegram chat id is a number (send /start to @userinfobot to find it)")
+    if token.strip():
+        secrets.set_telegram_token(token)
+    config.save_to_yaml({"telegram_enabled": bool(enabled), "telegram_chat_id": chat_id})
+    return get()
+
+
+def test_telegram() -> dict:
+    notifier.send_test()
+    return {"sent": True}

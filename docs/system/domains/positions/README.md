@@ -17,6 +17,16 @@ filled), then breakeven and trailing.
 
 ## Known things and gotchas
 
+- **The breakeven move only tightens** (2026-10-25). With `trail_atr_mult`
+  on, TP2 filling re-applied "breakeven after TP1" and moved a stop already
+  trailed into profit back to entry. `_reconcile_partial` now moves to
+  breakeven only if that is tighter (`_tighter`). Pinned by
+  `tests/services/positions/test_manager_defects.py`.
+- **Exit reason names the rung that filled** (2026-10-25), the highest TP oid
+  among the exit fills, not the ladder's length.
+- **Analytics** (`analytics.py`) are pure over closed trades and equity
+  snapshots. Sharpe uses daily last-equity returns x sqrt(365) and cannot tell
+  a deposit from a return.
 - **No take-profit below $11.20** (2026-10-25). Hyperliquid accepts a TP
   trigger under its $10 minimum and rejects it only when it fires
   (`minTradeNtlRejected`). On live ~$20 positions every TP of the 50/25/25

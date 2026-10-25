@@ -26,3 +26,11 @@ def clear_agent_key(network: str) -> dict:
 
 def set_admin_console(enabled: bool, nickname: str) -> dict:
     return app_settings.set_admin_console(enabled, nickname)
+
+
+def set_telegram(enabled: bool, chat_id: str, token: str) -> dict:
+    return app_settings.set_telegram(enabled, chat_id, token)
+
+
+def test_telegram() -> dict:
+    return app_settings.test_telegram()

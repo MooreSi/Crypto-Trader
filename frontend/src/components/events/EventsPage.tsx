@@ -3,7 +3,8 @@ import { api } from "@/api/client";
 import type { CalendarEvent } from "@/api/types";
 import { usePoll } from "@/hooks/usePoll";
 import { time } from "@/lib/format";
-import { Badge, Button, Card, ErrorLine, Table } from "@/components/shared/ui";
+import { CalendarClock, CalendarPlus, RefreshCw } from "lucide-react";
+import { Badge, Button, Card, ErrorLine, Table, inputCls } from "@/components/shared/ui";
 
 const KINDS = ["token_unlock", "listing", "upgrade", "maintenance", "other"];
 
@@ -22,36 +23,40 @@ export function EventsPage() {
       reload();
     } catch (e) { setMsg(String(e)); }
   };
-  const remove = async (id: number) => { await api.del(`/api/events/${id}`); reload(); };
-  const refresh = async () => { await api.post("/api/events/refresh"); reload(); };
+  const remove = async (id: number) => {
+    try { await api.del(`/api/events/${id}`); setMsg(""); reload(); } catch (e) { setMsg(String(e)); }
+  };
+  const refresh = async () => {
+    try { await api.post("/api/events/refresh"); setMsg(""); reload(); } catch (e) { setMsg(String(e)); }
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <ErrorLine error={error || msg} />
-      <Card title="Add your own event" right={<Button onClick={refresh}>Refresh feeds</Button>}>
+      <Card title="Add your own event" icon={<CalendarPlus className="h-4 w-4" />} right={<Button size="sm" onClick={refresh}><RefreshCw className="h-3.5 w-3.5" />Refresh feeds</Button>}>
         <p className="mb-3 text-xs text-muted">
           Token unlocks, listings, network upgrades, exchange maintenance. With coins, a high-impact event blocks new
           entries on those coins only; without, on every coin. Times are your local time.
         </p>
         <div className="grid gap-2 md:grid-cols-6">
           <input type="datetime-local" value={form.when} onChange={(e) => setForm({ ...form, when: e.target.value })}
-                 className="rounded-md border border-line bg-panel-2 px-2 py-1 md:col-span-2" />
+                 className={`${inputCls} md:col-span-2`} />
           <input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-                 className="rounded-md border border-line bg-panel-2 px-2 py-1 md:col-span-2" />
+                 className={`${inputCls} md:col-span-2`} />
           <select value={form.impact} onChange={(e) => setForm({ ...form, impact: e.target.value })}
-                  className="rounded-md border border-line bg-panel-2 px-2 py-1">
+                  className={inputCls}>
             <option value="high">high</option><option value="medium">medium</option><option value="low">low</option>
           </select>
           <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}
-                  className="rounded-md border border-line bg-panel-2 px-2 py-1">
+                  className={inputCls}>
             {KINDS.map((k) => <option key={k} value={k}>{k.replace("_", " ")}</option>)}
           </select>
           <input placeholder="Coins, e.g. ARB, OP (blank = all)" value={form.coins} onChange={(e) => setForm({ ...form, coins: e.target.value })}
-                 className="rounded-md border border-line bg-panel-2 px-2 py-1 md:col-span-4" />
+                 className={`${inputCls} md:col-span-4`} />
           <div className="md:col-span-2"><Button tone="accent" onClick={add}>Add event</Button></div>
         </div>
       </Card>
-      <Card title="Next 14 days">
+      <Card title="Next 14 days" icon={<CalendarClock className="h-4 w-4" />}>
         <Table head={["When", "Impact", "Event", "Kind", "Coins", "Source", ""]}
                empty={data && data.length === 0 ? "Nothing scheduled" : undefined}>
           {data?.map((e) => (
@@ -62,7 +67,7 @@ export function EventsPage() {
               <td className="px-2 py-1.5 text-xs">{e.kind.replace("_", " ")}</td>
               <td className="px-2 py-1.5 text-xs">{e.coins || "all"}</td>
               <td className="px-2 py-1.5 text-xs text-muted">{e.source}</td>
-              <td className="px-2 py-1.5">{e.source === "user" && <Button onClick={() => remove(e.id)}>Delete</Button>}</td>
+              <td className="px-2 py-1.5">{e.source === "user" && <Button size="sm" tone="ghost" onClick={() => remove(e.id)}>Delete</Button>}</td>
             </tr>
           ))}
         </Table>

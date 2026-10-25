@@ -51,3 +51,12 @@ def test_appended_feature_hands_over_to_narrower_model(tmp_path):
 def test_models_are_per_engine(tmp_path):
     EngineModel("breakout", NAMES, tmp_path).train(_samples(300, True))
     assert not EngineModel("trend_pa", NAMES, tmp_path).load()
+
+
+def test_an_accepted_model_reports_what_it_learned_from(tmp_path):
+    # Only "a" decides the label, so it must top the importances.
+    rep = EngineModel("breakout", NAMES, tmp_path).train(_samples(300, True))
+    assert rep["accepted"]
+    names = [n for n, _ in rep["top_features"]]
+    assert names[0] == "a" and set(names) <= set(NAMES)
+    assert sum(v for _, v in rep["top_features"]) == pytest.approx(1.0, abs=0.01)

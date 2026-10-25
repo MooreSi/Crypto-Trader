@@ -25,6 +25,11 @@ def decisions(limit: int = 100) -> list[dict]:
     return trades_controller.gate_decisions(limit)
 
 
+@router.get("/analytics")
+def analytics() -> dict:
+    return trades_controller.analytics()
+
+
 @router.get("/{trade_id}/events")
 def events(trade_id: int) -> list[dict]:
     return trades_controller.trade_events(trade_id)

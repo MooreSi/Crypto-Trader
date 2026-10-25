@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { api } from "@/api/client";
 import type { AppSettings } from "@/api/types";
-import { Badge, Button, Card, ErrorLine, Switch, confirmAction } from "@/components/shared/ui";
+import { Globe, HardDrive, KeyRound, Monitor, Wallet } from "lucide-react";
+import { Badge, Button, Card, ErrorLine, Notice, Switch, confirmAction, inputCls } from "@/components/shared/ui";
+import { TelegramCard } from "./TelegramCard";
 
 const NETWORK_HELP: Record<string, string> = {
   paper: "Simulated account on live mainnet prices. No wallet needed. No funding or liquidation modelled.",
@@ -30,13 +32,13 @@ export function SettingsPage() {
 
   if (!s) return <ErrorLine error={error || "Loading..."} />;
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-3xl space-y-5">
       <ErrorLine error={error} />
-      {msg && <div className="rounded-md border border-line bg-panel-2 px-3 py-2 text-sm">{msg}</div>}
-      <Card title="Network">
+      {msg && <Notice>{msg}</Notice>}
+      <Card title="Network" icon={<Globe className="h-4 w-4" />}>
         <div className="space-y-2">
           {s.networks.map((n) => (
-            <label key={n} className="flex cursor-pointer items-start gap-3 rounded-md border border-line p-3 hover:border-accent">
+            <label key={n} className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-bg-2/40 p-3 transition hover:border-accent/60">
               <input type="radio" name="network" checked={s.network_on_restart === n} onChange={() => chooseNetwork(n)} className="mt-1" />
               <div>
                 <div className="font-medium capitalize">{n} {s.network === n && <Badge tone="accent">running</Badge>}</div>
@@ -49,15 +51,15 @@ export function SettingsPage() {
           )}
         </div>
       </Card>
-      <Card title="Hyperliquid account">
+      <Card title="Hyperliquid account" icon={<Wallet className="h-4 w-4" />}>
         <p className="mb-2 text-xs text-muted">The address of the account that holds your funds (0x...). Used for testnet and mainnet.</p>
         <div className="flex gap-2">
           <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="0x..."
-                 className="flex-1 rounded-md border border-line bg-panel-2 px-2 py-1 font-mono text-sm" />
+                 className={`${inputCls} flex-1 font-mono`} />
           <Button tone="accent" onClick={() => run(api.post("/api/settings/account", { address }), "Account address saved")}>Save</Button>
         </div>
       </Card>
-      <Card title="API wallet key">
+      <Card title="API wallet key" icon={<KeyRound className="h-4 w-4" />}>
         <div className="mb-3 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
           Enter an <b>API wallet</b> key only (Hyperliquid: More &gt; API). An API wallet can trade but cannot withdraw.
           Never enter your main wallet's private key. The key is stored in your operating system's keychain, not in a file.
@@ -72,15 +74,16 @@ export function SettingsPage() {
         </div>
         <div className="flex gap-2">
           <select value={key.network} onChange={(e) => setKey({ ...key, network: e.target.value })}
-                  className="rounded-md border border-line bg-panel-2 px-2 py-1">
+                  className={inputCls}>
             <option value="testnet">testnet</option><option value="mainnet">mainnet</option>
           </select>
           <input type="password" autoComplete="off" value={key.key} onChange={(e) => setKey({ ...key, key: e.target.value })}
-                 placeholder="API wallet private key (64 hex)" className="flex-1 rounded-md border border-line bg-panel-2 px-2 py-1 font-mono text-sm" />
+                 placeholder="API wallet private key (64 hex)" className={`${inputCls} flex-1 font-mono`} />
           <Button tone="accent" onClick={() => { void run(api.post("/api/settings/agent-key", key), `${key.network} key stored`); setKey({ ...key, key: "" }); }}>Store</Button>
         </div>
       </Card>
-      <Card title="Admin console">
+      <TelegramCard s={s} apply={apply} />
+      <Card title="Admin console" icon={<Monitor className="h-4 w-4" />}>
         <div className="mb-3 flex items-center justify-between text-sm">
           <div>
             <div>Report to the admin console</div>
@@ -91,11 +94,11 @@ export function SettingsPage() {
         </div>
         <div className="flex gap-2">
           <input value={nick} onChange={(e) => setNick(e.target.value)} placeholder="Nickname (optional)"
-                 className="flex-1 rounded-md border border-line bg-panel-2 px-2 py-1 text-sm" />
+                 className={`${inputCls} flex-1`} />
           <Button onClick={() => run(api.post("/api/settings/admin-console", { enabled: s.admin_console_enabled, nickname: nick }), "Saved; takes effect on restart")}>Save</Button>
         </div>
       </Card>
-      <Card title="This install">
+      <Card title="This install" icon={<HardDrive className="h-4 w-4" />}>
         <div className="space-y-1 text-sm text-muted">
           <div>Data folder: <span className="font-mono text-text">{s.data_dir}</span></div>
           <div>Dashboard: <span className="font-mono text-text">http://127.0.0.1:{s.dashboard_port}</span> (local only)</div>

@@ -6,7 +6,9 @@ and nothing that writes.
 """
 from __future__ import annotations
 
+from backend.src.services.positions import analytics as perf
 from backend.src.services.positions import trades_repo
+from backend.src.utils import clock
 
 
 def _with_r(t: dict) -> dict:
@@ -36,3 +38,8 @@ def stats() -> dict:
     n = s.get("n") or 0
     return {"closed": n, "net_pnl": s.get("pnl") or 0.0,
             "win_rate": (s.get("wins") or 0) / n if n else None}
+
+
+def analytics() -> dict:
+    """Performance over every closed trade and the last year of equity."""
+    return perf.compute(trades_repo.history(5000, 0), trades_repo.equity_curve(clock.now() - 365 * 86400))

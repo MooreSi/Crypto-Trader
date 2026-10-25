@@ -1,7 +1,7 @@
 {
   "name": "crypto-trader-dashboard",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Crypto Trader dashboard. Node is a build-time dependency only: the compiled bundle in dist/ is committed and served by the Python process.",
   "scripts": {

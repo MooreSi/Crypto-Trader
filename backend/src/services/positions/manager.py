@@ -9,7 +9,8 @@ the exchange:
   cancelled.
 * **position smaller** -- a TP trigger filled. The partial is recorded from
   the fills, the stop is resized to what is left, and after
-  `breakeven_after_tp` TPs the stop moves to the entry price.
+  `breakeven_after_tp` TPs the stop moves to the entry price, unless it is
+  already tighter (a trailed stop is never loosened back to breakeven).
 * **trailing** -- once TP1 has filled and `trail_atr_mult` > 0, the stop
   follows price at that many ATRs, and only ever tightens.
 
@@ -66,8 +67,9 @@ def _exit_reason(trade: dict, fills: list[Fill]) -> str:
     if trade.get("sl_oid") in oids:
         at_entry = abs(trade["stop_loss"] - trade["entry_price"]) <= trade["entry_price"] * 1e-4
         return "breakeven stop" if trade["tp_hit"] and at_entry else "stop loss"
-    if any(o in oids for o in trade.get("tp_oids") or [] if o):
-        return f"TP{len(trade['take_profits'])}"
+    hit = [i + 1 for i, o in enumerate(trade.get("tp_oids") or []) if o and o in oids]
+    if hit:
+        return f"TP{max(hit)}"
     return "closed on exchange"
 
 
@@ -107,10 +109,18 @@ def _reconcile_partial(client: ExchangeClient, trade: dict, live_size: float,
     if be_after and tp_hit >= be_after:
         # The fill price is rarely a valid tick (an average of several fills);
         # the stop must be one, or the exchange refuses it.
-        new_stop = rounding.round_price(fresh["entry_price"], market.sz_decimals)
+        be = rounding.round_price(fresh["entry_price"], market.sz_decimals)
+        # Only ever tighten: a stop the trail already moved into profit stays.
+        if _tighter(fresh["direction"], be, fresh["stop_loss"]):
+            new_stop = be
     order_service.move_stop(client, fresh, new_stop, live_size,
                             "breakeven" if new_stop != fresh["stop_loss"] else "resize after TP")
     return trades_repo.get(trade["id"])
+
+
+def _tighter(direction: str, candidate: float, current: float) -> bool:
+    """Is `candidate` a tighter stop than `current` (closer to price, less risk)?"""
+    return candidate > current if direction == "long" else candidate < current
 
 
 def _trail(client: ExchangeClient, trade: dict, market: Market, mid: Optional[float],
