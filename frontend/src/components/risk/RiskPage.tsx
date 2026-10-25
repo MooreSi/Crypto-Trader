@@ -14,6 +14,7 @@ const SECTIONS: { title: string; fields: Field[] }[] = [
     { key: "max_position_notional_pct", label: "Max position size (% of equity, notional)", help: "Caps position size when the stop is very tight." },
     { key: "min_reward_risk", label: "Min reward:risk (ladder)", help: "The TP ladder's weighted R must reach this.", step: 0.1 },
     { key: "entry_slippage_pct", label: "Max entry slippage (%)", help: "The market entry will not fill worse than this.", step: 0.05 },
+    { key: "min_stop_pct", label: "Min stop distance (% of price, 0 = off)", help: "Refuses a trade whose stop is so tight that the ~0.09% round-trip fee eats much of the risk.", step: 0.05 },
   ]},
   { title: "Portfolio", fields: [
     { key: "max_open_positions", label: "Max open positions", help: "" },

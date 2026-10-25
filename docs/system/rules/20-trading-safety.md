@@ -58,6 +58,7 @@ harmless. Defaults are the owner's "conservative" choice for v0.1:
 | `tp_ladder` | 1R 50%, 2R 25%, 3R 25% | |
 | `breakeven_after_tp` | 1 | |
 | `max_funding_rate_pct` | 0.05 %/h | refuse entries paying more |
+| `min_stop_pct` | 0 (off) | refuse a stop closer than this % of price (fees vs risk), checked in sizing |
 | event blackout | on, 30 min either side of high impact | |
 
 ## Leverage and liquidation

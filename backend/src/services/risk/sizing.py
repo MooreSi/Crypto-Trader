@@ -4,7 +4,10 @@
 
 then capped so the position's notional never exceeds `max_position_notional_pct`
 of equity, rounded DOWN to the market's lot size, and refused if the result
-is below Hyperliquid's $10 minimum order value.
+is below Hyperliquid's $10 minimum order value. A stop closer than
+`min_stop_pct` of price is refused first (off by default): a round trip pays
+the same fee in % of price whatever the stop, so on a very tight stop the fee
+is a large part of the risk.
 
 **Leverage does not set the risk -- the stop does.** Leverage only sets how
 much margin is locked and how close liquidation sits. So the leverage chosen
@@ -62,6 +65,11 @@ def compute(market: Market, equity: float, available: float, entry: float, stop:
     distance = abs(entry - stop)
     if distance <= 0 or entry <= 0:
         return SizeDecision(False, reason="stop distance is zero")
+    stop_pct = distance / entry * 100.0
+    min_stop = float(settings.get("min_stop_pct", 0.0))
+    if min_stop > 0 and stop_pct < min_stop - 1e-9:
+        return SizeDecision(False, reason=f"stop is {stop_pct:.2f}% from entry, under the "
+                                          f"{min_stop:.2f}% minimum (fees would eat too much of the risk)")
     leverage = safe_leverage(market, distance / entry, int(settings["max_leverage"]))
     if leverage == 0:
         return SizeDecision(False, reason="stop is too wide for any leverage to keep "

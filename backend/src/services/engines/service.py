@@ -99,10 +99,15 @@ class EngineService:
         settings = risk_settings.get()
         snapshots = {s.coin: s for s in client.snapshots()}
         coins = universe.select(list(snapshots.values()), settings)
-        btc_bars = candle_src.closed(client, "BTC", self.interval, HISTORY_BARS) \
-            if "BTC" in snapshots else []
+        try:
+            btc_bars = candle_src.closed(client, "BTC", self.interval, HISTORY_BARS) \
+                if "BTC" in snapshots else []
+        except candle_src.CandleBudgetExceeded:
+            log.info("[%s] candle budget used up; scanning next cycle", self.name)
+            return []
         step_s = INTERVAL_MS[self.interval] / 1000
         made: list[Signal] = []
+        deferred = 0
         for coin in coins:
             try:
                 bars = candle_src.closed(client, coin, self.interval, HISTORY_BARS)
@@ -121,8 +126,12 @@ class EngineService:
                                  ml_score=self.model.score(features))
                     sig.id = self.store.insert(sig)
                     made.append(sig)
+            except candle_src.CandleBudgetExceeded:
+                deferred += 1          # within the request budget next cycle
             except Exception as exc:
                 log.warning("[%s] %s scan failed: %s", self.name, coin, exc)
+        if deferred:
+            log.info("[%s] %d coin(s) deferred to the next cycle (candle budget)", self.name, deferred)
         return made
 
     def hand_to_executor(self, client: ExchangeClient, signals: list[Signal]) -> None:

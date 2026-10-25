@@ -38,6 +38,10 @@ NUMERIC: dict[str, tuple[float, float, float]] = {
     "breakeven_after_tp":        (1, 0, 8),                 # 0 = never
     "trail_atr_mult":            (0.0, 0.0, 10.0),          # 0 = no trailing
     "ml_min_probability":        (0.5, 0.0, 1.0),
+    # Refuse a signal whose stop is closer than this % of price (0 = off).
+    # A round trip pays ~0.09% in taker fees whatever the stop, so a 0.2% stop
+    # starts 0.45R down. Added 2026-10-25, default off.
+    "min_stop_pct":              (0.0, 0.0, 5.0),
 }
 
 BOOLEAN: dict[str, bool] = {

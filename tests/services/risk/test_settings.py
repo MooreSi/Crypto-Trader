@@ -51,3 +51,9 @@ def test_update_persists(fresh_db):
     settings.update({"watchlist": ["btc", " eth "], "trading_enabled": True})
     again = settings.get()
     assert again["watchlist"] == ["BTC", "ETH"] and again["trading_enabled"] is True
+
+
+def test_min_stop_pct_default_is_off_and_clamped(fresh_db):
+    # Added 2026-10-25, default 0 = the behaviour before it existed (golden rule 3).
+    assert settings.defaults()["min_stop_pct"] == 0.0
+    assert settings.update({"min_stop_pct": 50})["min_stop_pct"] == 5.0

@@ -49,3 +49,21 @@ def test_r_multiple_and_tp_price_are_inverse():
     tp = sizing.tp_price("short", 100.0, 105.0, 2.0)
     assert tp == 90.0
     assert sizing.r_multiple("short", 100.0, 105.0, tp) == 2.0
+
+
+def test_min_stop_distance_refuses_a_stop_too_close_for_fees():
+    # 0.2% stop: a round-trip taker fee (2 x 0.045%) alone is 0.45R of the risk.
+    d = sizing.compute(ETH, 10_000, 10_000, 3000.0, 2994.0, _s(min_stop_pct=0.5))
+    assert not d.ok and "stop is 0.20%" in d.reason and "0.50%" in d.reason
+
+
+def test_min_stop_distance_passes_at_and_beyond_the_minimum():
+    at = sizing.compute(ETH, 10_000, 10_000, 3000.0, 2985.0, _s(min_stop_pct=0.5))   # exactly 0.5%
+    wide = sizing.compute(ETH, 10_000, 10_000, 3000.0, 2970.0, _s(min_stop_pct=0.5))
+    assert at.ok and wide.ok
+    assert wide == sizing.compute(ETH, 10_000, 10_000, 3000.0, 2970.0, _s())   # size unchanged
+
+
+def test_min_stop_distance_off_by_default_changes_nothing():
+    assert settings.defaults()["min_stop_pct"] == 0.0
+    assert sizing.compute(ETH, 10_000, 10_000, 3000.0, 2999.0, _s()).ok

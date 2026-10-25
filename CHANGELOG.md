@@ -2,6 +2,20 @@
 
 All notable changes to Crypto Trader. Newest first.
 
+## [Unreleased]
+
+### Fixed
+- The engines exceeded Hyperliquid's request limit (about 2000 of the 1200
+  weight per minute an IP may use), so every info call, the account reads
+  of the positions loop included, failed with HTTP 429 on mainnet. A closed
+  candle series is now kept until its next bar closes, and candle fetches
+  share a 600-per-minute budget; coins over budget are scanned next cycle.
+
+### Added
+- `min_stop_pct` (Risk page, default 0 = off): refuses a trade whose stop is
+  closer than this % of price, where the round-trip fee is a large part of
+  the risk.
+
 ## [0.2.0] - 2026-10-25 - Strategy Lab, analytics and a new dashboard
 
 ### Added
