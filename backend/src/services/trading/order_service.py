@@ -44,6 +44,12 @@ log = logging.getLogger(__name__)
 TAKER_FEE_ESTIMATE = 0.00045
 #: Max adverse slippage for app-initiated market closes.
 CLOSE_SLIPPAGE = 0.02
+#: Smallest take-profit order placed, valued at its trigger price. Hyperliquid
+#: accepts a smaller trigger but rejects it when it fires (minimum $10;
+#: `minTradeNtlRejected`, seen live 2026-10-25). It may value the fired order
+#: at its limit price, which the client sets 10% past the trigger, so this is
+#: $10 / 0.9 rounded up. A smaller rung is merged into the one before it.
+TP_MIN_NOTIONAL_USD = 11.2
 
 
 class OrderRefused(RuntimeError):
@@ -70,25 +76,43 @@ def _place_stop(client: ExchangeClient, coin: str, direction: str, size: float, 
     return client.place_trigger(coin, direction == "short", size, stop, "stop")
 
 
-def _place_tps(client: ExchangeClient, market: Market, direction: str, size: float,
-               entry: float, stop: float, ladder: list[list[float]]) -> tuple[list[float], list[Optional[int]]]:
-    """Place one reduce-only TP trigger per ladder rung. The last rung takes the
-    remainder so rounding never leaves a sliver with no exit but the stop."""
-    prices, oids = [], []
+def _tp_plan(market: Market, direction: str, size: float, entry: float, stop: float,
+             ladder: list[list[float]]) -> tuple[list[float], list[float]]:
+    """(prices, sizes) per ladder rung. The last rung takes the remainder so
+    rounding never leaves a sliver with no exit but the stop. Then, from the
+    far end inward, a rung worth less than TP_MIN_NOTIONAL_USD is merged into
+    the rung before it (size 0 = merged). TP1 keeps whatever reaches it."""
+    prices, parts = [], []
     remaining = size
     for i, (r, frac) in enumerate(ladder):
-        price = rounding.round_price(tp_price(direction, entry, stop, r), market.sz_decimals)
+        prices.append(rounding.round_price(tp_price(direction, entry, stop, r), market.sz_decimals))
         part = remaining if i == len(ladder) - 1 else rounding.round_size(size * frac, market.sz_decimals)
         part = min(part, remaining)
-        prices.append(price)
+        parts.append(max(part, 0.0))
+        remaining = rounding.round_size(remaining - part, market.sz_decimals)
+    for i in range(len(parts) - 1, 0, -1):
+        if parts[i] > 0 and parts[i] * prices[i] < TP_MIN_NOTIONAL_USD:
+            parts[i - 1] = rounding.round_size(parts[i - 1] + parts[i], market.sz_decimals)
+            parts[i] = 0.0
+    return prices, parts
+
+
+def _place_tps(client: ExchangeClient, market: Market, direction: str, size: float,
+               entry: float, stop: float, ladder: list[list[float]]) -> tuple[list[float], list[Optional[int]]]:
+    """Place one reduce-only TP trigger per rung of `_tp_plan` that has a size."""
+    prices, parts = _tp_plan(market, direction, size, entry, stop, ladder)
+    oids: list[Optional[int]] = []
+    for i, (price, part) in enumerate(zip(prices, parts)):
         if part <= 0:
             oids.append(None)
             continue
+        if part * price < TP_MIN_NOTIONAL_USD:
+            log.warning("[Orders] TP%d for %s is only $%.2f; the exchange may reject it when it "
+                        "fires", i + 1, market.coin, part * price)
         res = client.place_trigger(market.coin, direction == "short", part, price, "take_profit")
         oids.append(res.oid if res.ok else None)
         if not res.ok:
             log.warning("[Orders] TP%d for %s refused: %s", i + 1, market.coin, res.error)
-        remaining = rounding.round_size(remaining - part, market.sz_decimals)
     return prices, oids
 
 

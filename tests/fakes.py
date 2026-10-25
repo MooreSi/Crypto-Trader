@@ -28,6 +28,7 @@ class FakeExchange:
         self.funding = {"BTC": 0.00001, "ETH": 0.00001, "SOL": 0.00001}
         self.calls: list[tuple] = []
         self.refuse_stop = False
+        self.refuse_tp = False
         self.refuse_entry = False
         self.entry_fill_price: Optional[float] = None
         self._oid = 100
@@ -82,6 +83,8 @@ class FakeExchange:
         self.calls.append(("trigger", coin, is_buy, size, trigger_price, kind))
         if kind == "stop" and self.refuse_stop:
             return OrderResult(ok=False, error="stop refused")
+        if kind == "take_profit" and self.refuse_tp:
+            return OrderResult(ok=False, error="tp refused")
         oid = self._next()
         self.orders.append(OpenOrder(coin, oid, is_buy, size, trigger_price, trigger_price, True, kind))
         return OrderResult(ok=True, oid=oid)

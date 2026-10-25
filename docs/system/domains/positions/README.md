@@ -17,6 +17,15 @@ filled), then breakeven and trailing.
 
 ## Known things and gotchas
 
+- **No take-profit below $11.20** (2026-10-25). Hyperliquid accepts a TP
+  trigger under its $10 minimum and rejects it only when it fires
+  (`minTradeNtlRejected`). On live ~$20 positions every TP of the 50/25/25
+  ladder was under $10, so trades could only exit at the stop; a UNI long
+  ran past all three TPs and came back to the stop. `_tp_plan` now merges an
+  undersized rung into the rung before it (nearer price). A $20 position gets
+  one TP at 1R; a full three-rung ladder needs roughly $35 or more. The
+  $11.20 covers the case that the fired order is valued at its limit price
+  (10% past the trigger); which price the exchange uses is not verified.
 - **The breakeven stop is rounded to a valid tick** (2026-10-24). The fill
   price is an average and rarely on the grid; sent raw, the exchange would
   refuse the stop move. Found in the end-to-end paper run on BTC

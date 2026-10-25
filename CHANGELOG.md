@@ -10,6 +10,10 @@ All notable changes to Crypto Trader. Newest first.
   reloads when it is back.
 
 ### Fixed
+- Take-profit orders are never smaller than $11.20. Smaller ladder rungs are
+  merged into the rung before them, down to a single TP1 for the whole
+  position. Before, on small positions Hyperliquid rejected every TP when it
+  fired, so trades could only close at the stop.
 - Shutting down (Stop, Restart, Ctrl+C, the Stop scripts) now waits for a
   pass already running. Before, it could close the databases under a running
   engine or positions pass, which then failed with "database is closed".
