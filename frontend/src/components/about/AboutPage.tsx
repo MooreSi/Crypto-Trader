@@ -6,7 +6,7 @@ import { Card } from "@/components/shared/ui";
 
 const PILLARS = [
   { icon: Activity, title: "Three live-capable engines", text: "Breakout, ICT reversal and trend pullback, scanning the most traded Hyperliquid perps 24/7." },
-  { icon: Brain, title: "Self-learning, with a gate", text: "Every signal is tracked to +1R or the stop. Each engine retrains daily and a model is used only if it beats chance on data it never saw." },
+  { icon: Brain, title: "Self-learning, with a gate", text: "Every signal is tracked through your real exit plan, net of fees. Each engine retrains daily and a model is used only if it beats chance on data it never saw." },
   { icon: FlaskConical, title: "Strategy Lab", text: "Backtest any engine or Lab strategy (Donchian trend, Bollinger-RSI reversion, Supertrend) with the app's own exit plan." },
   { icon: ShieldCheck, title: "Exchange-side protection", text: "Stops and take-profits sit on the exchange, so positions stay protected while the app is closed." },
   { icon: BellRing, title: "Alerts", text: "Optional Telegram messages for every open, take-profit, stop move and close." },

@@ -83,7 +83,7 @@ export function EnginesPage() {
               <p className="mb-4 text-xs text-muted">{ABOUT[e.name]}</p>
               <div className="mb-4 flex items-center gap-4">
                 <Ring value={wr} size={76} tone={(wr ?? 0) >= 0.5 ? "profit" : "warn"}>
-                  <div>{wr == null ? "-" : pct(wr * 100, 0)}</div><div className="text-[9px] font-normal text-muted">+1R first</div>
+                  <div>{wr == null ? "-" : pct(wr * 100, 0)}</div><div className="text-[9px] font-normal text-muted">net win</div>
                 </Ring>
                 <div className="num grid flex-1 grid-cols-3 gap-2 text-center text-[11px] text-muted">
                   <div><div className="text-base font-semibold text-text">{e.stats.total}</div>signals</div>
@@ -117,7 +117,7 @@ export function EnginesPage() {
 function Signals({ name }: { name: string }) {
   const { data } = usePoll(() => api.get<EngineSignal[]>(`/api/engines/${name}/signals?limit=100`), 15000, [name]);
   return (
-    <Card title={`${name.replace("_", " ")} signals`} subtitle="Latest 100, tracked to +1R or the stop">
+    <Card title={`${name.replace("_", " ")} signals`} subtitle="Latest 100, tracked through your exit plan, net of fees">
       <Table head={["Time", "Coin", "Side", "Entry", "Stop", "ML", "Outcome", "MFE", "Live", "Why"]}
              align={["l", "l", "l", "r", "r", "r", "l", "r", "l", "l"]}
              empty={data && data.length === 0 ? "No signals yet" : undefined}>

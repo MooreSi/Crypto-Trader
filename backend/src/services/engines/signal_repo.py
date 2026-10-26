@@ -9,6 +9,11 @@ into another's model.
 `refused:<reason>`, or NULL (virtual only). FOREX Trader's two engines used
 two different words for "this one traded" and a query copied between them
 matched zero rows for months (its bugs/062). Here the words are constants.
+
+`label_v` is the version of the labelling rule that wrote a row's label
+(`tracker.LABEL_VERSION`). Only current-version labels train a model; rows
+labelled by an older rule are listed by `stale()` for the tracker to
+re-score.
 """
 from __future__ import annotations
 
@@ -18,6 +23,7 @@ from typing import Optional
 
 from backend.src.db.connection import Database
 from backend.src.services.engines.base import Signal
+from backend.src.services.engines.tracker import LABEL_VERSION
 
 LIVE_EXECUTED = "executed"
 LIVE_REFUSED = "refused"
@@ -46,6 +52,8 @@ MIGRATIONS = (
     )""",
     "CREATE INDEX idx_signals_status ON signals(status)",
     "CREATE INDEX idx_signals_coin ON signals(coin, created_at)",
+    # Labels written before this column existed used rule 1 (+1R before -1R).
+    "ALTER TABLE signals ADD COLUMN label_v INTEGER NOT NULL DEFAULT 1",
 )
 
 
@@ -72,10 +80,23 @@ class SignalStore:
         return self.db.query("SELECT * FROM signals WHERE status = 'tracking' ORDER BY id")
 
     def resolve(self, signal_id: int, status: str, label: int, r_final: float,
-                mfe_r: float, mae_r: float, resolved_at: float) -> None:
+                mfe_r: float, mae_r: float, resolved_at: float, label_v: int = LABEL_VERSION) -> None:
         self.db.execute(
-            "UPDATE signals SET status=?, label=?, r_final=?, mfe_r=?, mae_r=?, resolved_at=? "
-            "WHERE id = ?", (status, label, r_final, mfe_r, mae_r, resolved_at, signal_id))
+            "UPDATE signals SET status=?, label=?, r_final=?, mfe_r=?, mae_r=?, resolved_at=?, "
+            "label_v=? WHERE id = ?",
+            (status, label, r_final, mfe_r, mae_r, resolved_at, label_v, signal_id))
+
+    def stale(self, version: int) -> list[dict]:
+        """Resolved rows whose label an older rule wrote."""
+        return self.db.query(
+            "SELECT * FROM signals WHERE status != 'tracking' AND label_v < ? ORDER BY id",
+            (version,))
+
+    def reopen(self, signal_id: int, mfe_r: float, mae_r: float) -> None:
+        """Back to tracking, label cleared: re-scored under the current rule it is not done yet."""
+        self.db.execute(
+            "UPDATE signals SET status='tracking', label=NULL, r_final=NULL, resolved_at=NULL, "
+            "mfe_r=?, mae_r=?, label_v=? WHERE id = ?", (mfe_r, mae_r, LABEL_VERSION, signal_id))
 
     def update_excursion(self, signal_id: int, mfe_r: float, mae_r: float) -> None:
         self.db.execute("UPDATE signals SET mfe_r=?, mae_r=? WHERE id = ?",
@@ -88,7 +109,7 @@ class SignalStore:
     def labelled(self) -> list[tuple[float, dict, int]]:
         rows = self.db.query(
             "SELECT created_at, features, label FROM signals WHERE label IS NOT NULL "
-            "ORDER BY created_at")
+            "AND label_v = ? ORDER BY created_at", (LABEL_VERSION,))
         return [(r["created_at"], json.loads(r["features"]), int(r["label"])) for r in rows]
 
     def recent(self, limit: int = 100) -> list[dict]:

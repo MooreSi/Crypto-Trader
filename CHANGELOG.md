@@ -4,6 +4,14 @@ All notable changes to Crypto Trader. Newest first.
 
 ## [Unreleased]
 
+### Changed
+- Signal tracking (and so what each engine's model learns) now replays every
+  signal through the live exit plan: your TP ladder, the breakeven move and
+  taker fees, from the real fill when it traded. A win is a signal that made
+  money net of fees. The old "+1R before -1R" label called setups winners
+  that the 3R take-profit never paid. Old labels are re-scored while their
+  candles are still held, and are otherwise left out of training.
+
 ### Fixed
 - The engines exceeded Hyperliquid's request limit (about 2000 of the 1200
   weight per minute an IP may use), so every info call, the account reads

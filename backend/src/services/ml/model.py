@@ -5,8 +5,10 @@ files under `MODELS_DIR/<engine>/`. Nothing is shared between engines but
 this code: no file, no row, no label. (FOREX Trader's rule, kept: total
 isolation between engines.)
 
-**What it predicts:** the probability that a signal reaches +1R before -1R
-(the engine's tracker writes that label for every signal, executed or not).
+**What it predicts:** the probability that a signal makes money net of fees
+under the live exit plan (TP ladder, breakeven move, taker fees, from the
+real fill when it traded). The engine's tracker writes that label for every
+signal, executed or not; labels an older rule wrote are never trained on.
 
 **Validation before use.** A retrain fits on the oldest 80% of labelled
 signals and scores the newest 20%. The model is kept only if its holdout AUC

@@ -23,8 +23,19 @@ Hyperliquid perpetual. Each produces `Setup`s from closed candles; the shared
   rows for months.
 - Research is keyed by **market data source**: paper and mainnet share
   `<engine>_mainnet.db`; testnet is kept apart (its prices are its own market).
-- The label is "+1R before -1R" (`tracker.py`). A bar touching both is a loss.
-  Expiry after 192 bars is label 0.
+- The label is "made money net of fees under the live exit plan"
+  (`tracker.py`, `LABEL_VERSION = 2`): the owner's TP ladder, breakeven after
+  `breakeven_after_tp` TPs and the round-trip taker fee, replayed by
+  `backtest/simulator.py` from the real fill when the signal traded. A bar
+  touching both a target and the stop is the stop. Expiry after 192 bars is
+  label 0. The plan is read from the risk settings at evaluation time.
+- Labels carry `label_v`. Version 1 was "+1R before -1R" from the signal
+  price, before fees. On 2026-10-26 three live losers (UNI, LIT, ZEC) were
+  labelled wins under it (their TPs were rejected under $10, or never
+  placed), and it no longer matched the single 3R take-profit the trades now
+  use, nor fees on tight stops. Old labels are re-scored
+  while their bars are still held (260 bars) and otherwise kept out of
+  training (`SignalStore.stale`, `labelled`).
 - Features are **append-only** (`ml/features.py`). The model file name carries
   the width; a narrower model hands over until the next accepted retrain.
 - **ML fails open**: no model means `ml_score=None`, which passes the ML gate

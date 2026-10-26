@@ -48,7 +48,8 @@ same machine at the same time.
 | Reversal (ICT) | 15m + daily | a liquidity sweep of a key level followed by a market structure shift (FVG / "unicorn" noted) |
 | Trend PA | 1h + 4h | a pullback to EMA20 in an established EMA20/50/200 trend, with a rejection candle |
 
-Every signal is tracked virtually to "+1R or stop first". Each engine retrains
+Every signal is tracked virtually through your real exit plan (TP ladder,
+breakeven move, fees), and labelled a win only if it made money. Each engine retrains
 daily on its own outcomes, and a new model is only accepted if it beats chance
 on recent data it has never seen.
 

@@ -2,7 +2,8 @@
 
     scan universe -> closed candles -> generator -> features -> ML score
         -> store (always) -> executor (only if this engine's live toggle is on)
-    then: track every open virtual signal to its outcome
+    then: track every open virtual signal to its outcome under the live exit
+          plan (and re-score labels an older rule wrote, while their bars last)
     and: retrain the model once a day
 
 An engine's generator is a pure function from candles to zero or more
@@ -28,12 +29,14 @@ from backend.src.services.engines import tracker
 from backend.src.services.engines.base import Signal
 from backend.src.services.engines.signal_repo import LIVE_EXECUTED, LIVE_REFUSED, SignalStore
 from backend.src.services.events import calendar
+from backend.src.services.exchange.paper_exchange import PAPER_TAKER_FEE
 from backend.src.services.exchange.types import Candle, ExchangeClient
 from backend.src.services.market import candles as candle_src
 from backend.src.services.market import universe
 from backend.src.services.market.candles import INTERVAL_MS
 from backend.src.services.ml import features as feat
 from backend.src.services.ml.model import EngineModel
+from backend.src.services.positions import trades_repo
 from backend.src.services.risk import settings as risk_settings
 from backend.src.services.trading import executor
 from backend.src.utils import clock
@@ -143,14 +146,27 @@ class EngineService:
                 self.store.set_live(sig.id, f"{LIVE_REFUSED}:{outcome.reason}"[:200], None)
 
     def track(self, client: ExchangeClient) -> int:
+        settings = risk_settings.get()
+        plan = {"tp_ladder": settings["tp_ladder"], "breakeven_after_tp": settings["breakeven_after_tp"],
+                "fee_rate": PAPER_TAKER_FEE}
         resolved = 0
-        for row in self.store.tracking():
+        for row in self.store.tracking() + self.store.stale(tracker.LABEL_VERSION):
             try:
+                rescore = row["status"] != "tracking"
                 bars = candle_src.closed(client, row["coin"], row["interval"], HISTORY_BARS)
+                if rescore and (not bars or bars[0].t / 1000 > row["created_at"]):
+                    continue           # its first bars are gone: keep the old label, never train on it
                 after = [c for c in bars if c.t / 1000 >= row["created_at"]]
-                out = tracker.evaluate(row, after)
+                sig = dict(row)
+                trade = trades_repo.get(row["trade_id"]) if row.get("trade_id") else None
+                if trade:
+                    sig["fill"] = trade["entry_price"]
+                out = tracker.evaluate(sig, after, plan)
                 if out["status"] == "tracking":
-                    self.store.update_excursion(row["id"], out["mfe_r"], out["mae_r"])
+                    if rescore:
+                        self.store.reopen(row["id"], out["mfe_r"], out["mae_r"])
+                    else:
+                        self.store.update_excursion(row["id"], out["mfe_r"], out["mae_r"])
                 else:
                     self.store.resolve(row["id"], out["status"], out["label"], out["r_final"],
                                        out["mfe_r"], out["mae_r"], out["resolved_at"])
