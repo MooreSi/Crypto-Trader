@@ -12,6 +12,13 @@ break-and-retest on XAUUSD M5), rebuilt for any perpetual on 15m bars:
   bars, and the trigger bar comes back to touch the broken edge and closes
   back on the breakout side.
 
+The trigger bar must close in the outer part of its own range, at least
+`MIN_CLOSE_POS` of the way towards the break (a long closes in its top 30%):
+a break that gives most of the bar back has not been held. Measured
+2026-10-27 on 12 coins, chosen on the first 60% of the history and checked
+on the last 40%; trend filters (EMA50/200) were tried too and lost out of
+sample.
+
 Stop: the range midpoint, but at least `MIN_STOP_ATR` ATRs from entry.
 Stands down in the `volatile` regime, where ranges are noise.
 
@@ -36,6 +43,7 @@ MIN_VOL_Z = 1.0
 RETEST_WINDOW = 8
 RETEST_TOLERANCE_ATR = 0.25
 MIN_STOP_ATR = 1.0
+MIN_CLOSE_POS = 0.7
 
 EXTRA_FEATURES = ("bo_range_atr", "bo_break_atr", "bo_vol_z", "bo_retest")
 
@@ -48,6 +56,15 @@ def _stop(direction: str, entry: float, mid: float, atr: float) -> float:
     if direction == "long":
         return min(mid, entry - MIN_STOP_ATR * atr)
     return max(mid, entry + MIN_STOP_ATR * atr)
+
+
+def _held(direction: str, c: Candle) -> bool:
+    """The bar closed at least MIN_CLOSE_POS of its range towards `direction`."""
+    rng = c.high - c.low
+    if rng <= 0:
+        return False
+    pos = (c.close - c.low) / rng
+    return (pos if direction == "long" else 1.0 - pos) >= MIN_CLOSE_POS
 
 
 def generate(bars: Sequence[Candle], htf: Sequence[Candle]) -> list[Setup]:
@@ -67,7 +84,7 @@ def generate(bars: Sequence[Candle], htf: Sequence[Candle]) -> list[Setup]:
         mid = (hi + lo) / 2
         for direction, edge, beyond in (("long", hi, trigger.close - hi),
                                          ("short", lo, lo - trigger.close)):
-            if beyond >= BREAK_ATR * atr:
+            if beyond >= BREAK_ATR * atr and _held(direction, trigger):
                 return [Setup(direction, trigger.close, _stop(direction, trigger.close, mid, atr),
                               f"break-and-go of a {height:.1f} ATR range on vol z {vol_z:.1f}",
                               {"bo_range_atr": height, "bo_break_atr": beyond / atr,
@@ -83,13 +100,15 @@ def generate(bars: Sequence[Candle], htf: Sequence[Candle]) -> list[Setup]:
     mid = (hi + lo) / 2
     tol = RETEST_TOLERANCE_ATR * atr
     if any(c.close > hi + BREAK_ATR * atr for c in since) and \
-            abs(trigger.low - hi) <= tol and trigger.close > hi and trigger.close > trigger.open:
+            abs(trigger.low - hi) <= tol and trigger.close > hi and trigger.close > trigger.open \
+            and _held("long", trigger):
         return [Setup("long", trigger.close, _stop("long", trigger.close, mid, atr),
                       "break-and-retest of range high",
                       {"bo_range_atr": height, "bo_break_atr": (trigger.close - hi) / atr,
                        "bo_vol_z": vol_z, "bo_retest": 1.0})]
     if any(c.close < lo - BREAK_ATR * atr for c in since) and \
-            abs(trigger.high - lo) <= tol and trigger.close < lo and trigger.close < trigger.open:
+            abs(trigger.high - lo) <= tol and trigger.close < lo and trigger.close < trigger.open \
+            and _held("short", trigger):
         return [Setup("short", trigger.close, _stop("short", trigger.close, mid, atr),
                       "break-and-retest of range low",
                       {"bo_range_atr": height, "bo_break_atr": (lo - trigger.close) / atr,

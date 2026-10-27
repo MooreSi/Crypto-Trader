@@ -11,9 +11,9 @@ Hyperliquid perpetual. Each produces `Setup`s from closed candles; the shared
 
 | Engine | Bars | Idea |
 |---|---|---|
-| Breakout | 15m | tight range (<= 4 ATR, 24 bars) broken on volume (z >= 1), or broken then retested |
-| Reversal | 15m (+1d) | liquidity sweep of a swing / prior-day level, then market structure shift; FVG and "unicorn" as features |
-| Trend PA | 1h (+4h) | pullback to EMA20 in an EMA20>50>200 trend with ADX >= 20 and a rejection wick |
+| Breakout | 15m | tight range (<= 4 ATR, 24 bars) broken on volume (z >= 1), or broken then retested; the trigger closes in its outer 30% |
+| Reversal | 15m (+1d) | liquidity sweep of a swing / prior-day level, then market structure shift, with the daily EMA10/20 trend; FVG and "unicorn" as features |
+| Trend PA | 1h (+4h) | pullback to EMA20 in an EMA20>50>200 trend with ADX >= 20 and a rejection wick; 4h trend not against it; RSI not stretched (<= 65 long, >= 35 short) |
 
 ## Constraints
 
@@ -95,6 +95,33 @@ Hyperliquid perpetual. Each produces `Setup`s from closed candles; the shared
   of 1h): Breakout 34-47, Reversal 54-78, Trend PA 13-24 per coin. That is
   frequency, not edge: no engine has yet shown an edge on crypto.
 - Retraining runs once a day per engine; needs 60 labelled signals.
+
+- **Entry filters, 2026-10-27.** Candles for 12 coins (BTC ETH SOL HYPE XRP
+  DOGE SUI AVAX LINK NEAR BNB LTC; 5000 x 15m, 5000 x 1h), the live 1.5%
+  minimum stop applied, each filter chosen on the first 60% of each coin's
+  bars and checked on the last 40%. Total R, in-sample / out-of-sample:
+
+  | Engine, exit plan | before | after | win rate after |
+  |---|---|---|---|
+  | reversal, 3R (owner's ladder) | -33.1 / -16.4 | -16.0 / -0.9 | 24% / 29% |
+  | reversal, 1.5R | -6.9 / +5.8 | +14.0 / +7.2 | 48% / 47% |
+  | breakout, 3R | +2.8 / -3.3 | +10.6 / -10.0 | 32% / 22% |
+  | breakout, 1.5R | +1.4 / -2.1 | +4.3 / +4.7 | 44% / 46% |
+  | trend_pa, 3R | -1.0 / +7.5 | +8.3 / +14.8 | 29% / 33% |
+  | trend_pa, 1.5R | -2.4 / -1.6 | +2.8 / +3.3 | 43% / 44% |
+
+  Samples are small (40-100 trades a half) and the 15m history is only ~52
+  days, so these are evidence, not proof. Tried and rejected because they
+  lost out of sample or in sample: EMA50/200 trend agreement for breakout
+  (the most-cited idea online), volume z >= 2, retest-only and go-only,
+  daily EMA20/50 for reversal (great in sample, -10.6R out of sample, so the
+  daily trend filter is sensitive to its periods), RSI and FVG requirements
+  for reversal. Backtests leave out funding, slippage beyond the taker fee
+  and the risk gates.
+- **The target matters more than the entry.** Across all three engines a
+  1.5R single target roughly doubles the win rate of a 3R one (about 45% vs
+  25%). For reversal it is also the most profitable plan in both halves.
+  The ladder is the owner's setting (`tp_ladder`), not an engine constant.
 
 ## Open questions
 

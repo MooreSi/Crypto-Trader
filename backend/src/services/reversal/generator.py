@@ -15,6 +15,14 @@ is recorded as a feature, not required, so the model can weigh it.
 
 Stands down when ADX shows a strong trend (`MAX_ADX`): reversals into a
 trend are where this setup loses most.
+
+Takes a sweep only in the direction of the daily trend (EMA`HTF_FAST` vs
+EMA`HTF_SLOW` of the daily closes): a sweep of a low in a daily uptrend, of a
+high in a downtrend. Measured 2026-10-27 on 12 coins with the live 1.5%
+minimum stop, chosen on the first 60% of the history and checked on the
+last 40%: sweeps against the daily trend lost under every exit plan, sweeps
+with it made money at a 1.5R target. With too few daily bars to tell (a new
+listing) the filter does not apply, which is how the engine behaved before.
 """
 from __future__ import annotations
 
@@ -30,9 +38,20 @@ SWEEP_WINDOW = 6
 STOP_PAD_ATR = 0.15
 MIN_STOP_ATR = 0.8
 MAX_ADX = 35.0
+HTF_FAST = 10
+HTF_SLOW = 20
 
 EXTRA_FEATURES = ("rv_sweep_depth_atr", "rv_bars_since_sweep", "rv_fvg", "rv_unicorn",
                   "rv_prior_day_level")
+
+
+def daily_bias(htf: Sequence[Candle]) -> int:
+    """+1 daily uptrend, -1 downtrend, 0 too few daily bars to tell."""
+    closes = [c.close for c in htf]
+    fast, slow = ind.ema(closes, HTF_FAST), ind.ema(closes, HTF_SLOW)
+    if not closes or fast[-1] is None or slow[-1] is None:
+        return 0
+    return 1 if fast[-1] > slow[-1] else -1
 
 
 def generate(bars: Sequence[Candle], htf: Sequence[Candle]) -> list[Setup]:
@@ -57,6 +76,8 @@ def generate(bars: Sequence[Candle], htf: Sequence[Candle]) -> list[Setup]:
     trigger = bars[-1]
     direction = "long" if sweep.bullish else "short"
     if (direction == "long") != (trigger.close > trigger.open):
+        return []
+    if daily_bias(htf) == (-1 if direction == "long" else 1):
         return []
     entry = trigger.close
     if direction == "long":
