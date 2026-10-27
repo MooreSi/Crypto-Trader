@@ -2,7 +2,7 @@
 
 Profit factor, expectancy in R, win rate, average win and loss, longest
 losing streak and holding time, per engine and overall; maximum drawdown and
-an annualised Sharpe ratio from the equity snapshots.
+an annualised Sharpe ratio from the equity snapshots ($0 readings skipped).
 
 * Net P&L of a trade is `realised_pnl - fees` (fees include the entry fee).
 * R of a trade is net / `risk_usd` (the money at risk when it opened).
@@ -38,9 +38,14 @@ def _block(trades: list[dict]) -> dict:
     }
 
 
+def _readings(equity: list[dict]) -> list[dict]:
+    """A $0 snapshot is an unfunded or just-changed account, not a value."""
+    return [p for p in equity if float(p["equity"]) > 0]
+
+
 def _max_drawdown_pct(equity: list[dict]) -> float:
     peak, worst = 0.0, 0.0
-    for p in equity:
+    for p in _readings(equity):
         e = float(p["equity"])
         peak = max(peak, e)
         if peak > 0:
@@ -50,7 +55,7 @@ def _max_drawdown_pct(equity: list[dict]) -> float:
 
 def _sharpe(equity: list[dict]) -> Optional[float]:
     by_day: dict[int, float] = {}
-    for p in sorted(equity, key=lambda x: x["ts"]):
+    for p in sorted(_readings(equity), key=lambda x: x["ts"]):
         by_day[int(p["ts"] // 86400)] = float(p["equity"])
     closes = [by_day[d] for d in sorted(by_day)]
     rets = [b / a - 1.0 for a, b in zip(closes, closes[1:]) if a > 0]

@@ -79,6 +79,9 @@ MIGRATIONS: tuple[str, ...] = (
         ts      REAL PRIMARY KEY,
         equity  REAL NOT NULL
     )""",
+    # The account a snapshot was read from (config.account_key()); '' for rows
+    # written before this column existed.
+    "ALTER TABLE equity_snapshots ADD COLUMN account TEXT NOT NULL DEFAULT ''",
 )
 
 _lock = threading.Lock()

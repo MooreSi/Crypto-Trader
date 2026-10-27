@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+from backend.src import config
 from backend.src.services.exchange import provider
 from backend.src.services.market import candles as candle_src
 from backend.src.services.market import pulse as market_pulse
@@ -27,7 +28,7 @@ def account() -> dict:
 
 
 def equity_curve(days: int = 30) -> list[dict]:
-    return trades_repo.equity_curve(clock.now() - days * 86400)
+    return trades_repo.equity_curve(clock.now() - days * 86400, config.account_key())
 
 
 def markets() -> list[dict]:

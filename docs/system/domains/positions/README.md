@@ -27,6 +27,14 @@ filled), then breakeven and trailing.
 - **Analytics** (`analytics.py`) are pure over closed trades and equity
   snapshots. Sharpe uses daily last-equity returns x sqrt(365) and cannot tell
   a deposit from a return.
+- **The equity curve is one account's** (2026-10-27). Changing the account
+  address recorded two $0 snapshots between ~$45 ones on mainnet and the
+  dashboard showed a 100% drawdown. Snapshots now carry `account`
+  (`config.account_key()`: `paper`, or `<network>:<address>`); the curve,
+  drawdown and Sharpe read the current account's rows plus untagged rows from
+  before the column. A $0 reading is never recorded and never read: it is an
+  unfunded or just-changed account, not a value. The cost: a real wipe-out to
+  exactly $0 would not show as a 100% drawdown.
 - **No take-profit below $11.20** (2026-10-25). Hyperliquid accepts a TP
   trigger under its $10 minimum and rejects it only when it fires
   (`minTradeNtlRejected`). On live ~$20 positions every TP of the 50/25/25

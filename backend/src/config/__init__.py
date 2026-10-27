@@ -175,6 +175,15 @@ def save_to_yaml(updates: dict) -> None:
     write_yaml(updates, reload=True)
 
 
+def account_key() -> str:
+    """Which account a figure (an equity snapshot) belongs to: paper is one
+    account; testnet and mainnet are one per account address."""
+    network = get("network")
+    if network == "paper":
+        return "paper"
+    return f"{network}:{str(get('account_address', '') or '').lower()}"
+
+
 def db_path(name: str) -> Path:
     """Where database `name` lives. One file per network for the main DB so a
     paper or testnet history can never be mistaken for a mainnet one."""

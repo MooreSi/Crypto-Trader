@@ -23,9 +23,14 @@ def _key() -> str:
 
 
 def start_equity(current_equity: float) -> float:
-    """Equity at the start of today (UTC); records it on the first call of the day."""
+    """Equity at the start of today (UTC); records it on the first call of the day.
+
+    A $0 reading (an unfunded or just-changed account) is not recorded: as the
+    start it would put the loss-limit floor at $0 for the rest of the day."""
     raw = database.get_app_config(_key())
     if raw is not None:
         return float(raw)
+    if current_equity <= 0:
+        return float(current_equity)
     database.set_app_config(_key(), repr(float(current_equity)))
     return float(current_equity)

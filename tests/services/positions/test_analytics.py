@@ -51,3 +51,18 @@ def test_nothing_yet():
     a = analytics.compute([], [])
     assert a["closed"] == 0 and a["win_rate"] is None and a["sharpe"] is None
     assert a["max_drawdown_pct"] == 0.0 and a["by_engine"] == {}
+
+
+def test_a_zero_reading_is_not_a_drawdown():
+    # Defect (2026-10-27): changing the account address recorded two $0
+    # snapshots between ~$45 ones, and the dashboard showed a 100% drawdown.
+    eq = [{"ts": i * 3600.0, "equity": e} for i, e in enumerate([45, 44, 0, 0, 45, 40.5])]
+    a = analytics.compute([], eq)
+    assert a["max_drawdown_pct"] == pytest.approx((45 - 40.5) / 45 * 100)
+
+
+def test_a_zero_reading_is_not_a_daily_return():
+    eq = [{"ts": d * 86400.0, "equity": e} for d, e in enumerate([100, 0, 101, 99.99, 101.9898])]
+    with_gap = analytics.compute([], eq)["sharpe"]
+    without = analytics.compute([], [p for p in eq if p["equity"] > 0])["sharpe"]
+    assert with_gap == pytest.approx(without)

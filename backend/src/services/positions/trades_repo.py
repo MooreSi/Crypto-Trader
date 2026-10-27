@@ -128,14 +128,18 @@ def recent_gate_decisions(limit: int = 100) -> list[dict]:
     return rows
 
 
-def snapshot_equity(equity: float) -> None:
+def snapshot_equity(equity: float, account: str) -> None:
     database.get().execute(
-        "INSERT OR REPLACE INTO equity_snapshots(ts, equity) VALUES(?, ?)", (clock.now(), equity))
+        "INSERT OR REPLACE INTO equity_snapshots(ts, equity, account) VALUES(?, ?, ?)",
+        (clock.now(), equity, account))
 
 
-def equity_curve(since_ts: float) -> list[dict]:
+def equity_curve(since_ts: float, account: str) -> list[dict]:
+    """`account`'s snapshots, plus untagged ones from before the column existed.
+    A $0 reading is an unfunded or just-changed account, not a value."""
     return database.get().query(
-        "SELECT ts, equity FROM equity_snapshots WHERE ts >= ? ORDER BY ts", (since_ts,))
+        "SELECT ts, equity FROM equity_snapshots WHERE ts >= ? AND equity > 0 "
+        "AND account IN (?, '') ORDER BY ts", (since_ts, account))
 
 
 def events_after(last_id: int, limit: int = 50) -> list[dict]:

@@ -42,6 +42,10 @@ context, runs the gates, sizes, records the decision and calls the order service
   Reversal was negative in the first period under every setting tried, and
   all five of its live trades lost. Nothing here was positive in both periods;
   re-run before trusting it on a new regime.
+- **A $0 equity is never the day's start** (2026-10-27). An unfunded or
+  just-changed account reads $0; recorded as the start, it put the loss-limit
+  floor at $0 and every later equity read as profit, so the limit could not
+  trip that day. The first positive reading is recorded instead.
 - The daily loss limit uses **equity** (includes unrealised), the profit target
   uses **realised** P&L. On purpose: a loss limit must see an open loser; a
   target must not stop trading on a winner that has not been banked.

@@ -74,8 +74,9 @@ class TradingRuntime:
                 # Record the UTC day's starting equity as soon as the day
                 # begins, not when the dashboard or a signal first asks.
                 day.start_equity(account.equity)
-            if account and clock.now() - self._last_equity_snapshot >= EQUITY_SNAPSHOT_EVERY_S:
-                trades_repo.snapshot_equity(account.equity)
+            if (account and account.equity > 0
+                    and clock.now() - self._last_equity_snapshot >= EQUITY_SNAPSHOT_EVERY_S):
+                trades_repo.snapshot_equity(account.equity, config.account_key())
                 self._last_equity_snapshot = clock.now()
         except Exception as exc:
             self.health.update(exchange_ok=False, last_error=str(exc))
