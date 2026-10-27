@@ -46,6 +46,11 @@ context, runs the gates, sizes, records the decision and calls the order service
   just-changed account reads $0; recorded as the start, it put the loss-limit
   floor at $0 and every later equity read as profit, so the limit could not
   trip that day. The first positive reading is recorded instead.
+- **The day's start is per account** (2026-10-27), keyed
+  `day_start_equity:<date>:<account_key>`. Before, a mid-day change of
+  account address kept the old account's figure: from a bigger account the
+  limit read a phantom loss, from a smaller one a phantom profit it would not
+  trip on. A date-only key written before the change still counts for its day.
 - The daily loss limit uses **equity** (includes unrealised), the profit target
   uses **realised** P&L. On purpose: a loss limit must see an open loser; a
   target must not stop trading on a winner that has not been banked.

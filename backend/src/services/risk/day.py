@@ -4,11 +4,16 @@ The daily loss limit and the daily profit target both reset at midnight
 UTC. The equity at the first check of each day is remembered so the loss
 limit is a fraction of where the day started, not of a balance that has
 already fallen.
+
+The figure is kept per account (`config.account_key()`): after a change of
+account address the new account records its own start. A figure written
+before this (keyed by date alone) still counts for its day.
 """
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from backend.src import config
 from backend.src.db import database
 from backend.src.utils import clock
 
@@ -18,8 +23,12 @@ def start_ts() -> float:
     return datetime(now.year, now.month, now.day, tzinfo=timezone.utc).timestamp()
 
 
-def _key() -> str:
+def _legacy_key() -> str:
     return "day_start_equity:" + clock.utcnow().strftime("%Y-%m-%d")
+
+
+def _key() -> str:
+    return _legacy_key() + ":" + config.account_key()
 
 
 def start_equity(current_equity: float) -> float:
@@ -28,6 +37,8 @@ def start_equity(current_equity: float) -> float:
     A $0 reading (an unfunded or just-changed account) is not recorded: as the
     start it would put the loss-limit floor at $0 for the rest of the day."""
     raw = database.get_app_config(_key())
+    if raw is None:
+        raw = database.get_app_config(_legacy_key())
     if raw is not None:
         return float(raw)
     if current_equity <= 0:
