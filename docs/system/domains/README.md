@@ -9,7 +9,7 @@ change; update it when a change teaches you something.
 | [exchange](exchange/README.md) | `services/exchange/` |
 | [engines](engines/README.md) | `services/engines/`, `breakout/`, `reversal/`, `trend_pa/`, `ml/` |
 | [risk](risk/README.md) | `services/risk/`, `services/trading/executor.py` |
-| [positions](positions/README.md) | `services/positions/`, `services/trading/order_service.py` |
+| [positions](positions/README.md) | `services/positions/`, `services/calendar/`, `services/trading/order_service.py` |
 | [market](market/README.md) | `services/market/` |
 | [events](events/README.md) | `services/events/` |
 | [platform](platform/README.md) | `run.py`, `app.py`, `runtime.py`, `config/`, `db/`, `remote/`, launchers |

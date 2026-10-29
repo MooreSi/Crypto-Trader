@@ -55,6 +55,25 @@ filled), then breakeven and trailing.
 - `move_stop` after a partial resizes the stop to the remaining size; the
   exchange would otherwise hold a reduce-only stop larger than the position.
 
+## The Calendar (`services/calendar/`, 2026-10-29)
+
+Read-only views of closed trades for the Calendar page, ported from FOREX
+Trader's Analysis calendar. Nothing here trades.
+
+- A trade is filed whole under the **UTC date it closed on**, the risk
+  governor's trading day (`risk/day.py`). Partials booked before midnight on
+  a trade that closed after it show on the later day here, while the loss
+  limit counted them on the day they were booked.
+- Net is `realised_pnl - fees`, as everywhere else; R is net over `risk_usd`.
+- The % figures are of the day's derived opening balance (equity now minus
+  everything realised from that day on). Deposits, withdrawals and open
+  positions' float are not in the rows, so they shift these figures.
+- Target and loss-limit marks apply TODAY's settings to the day's realised
+  closes; the real loss limit also counts open float. They are hints, not a
+  record of what the governor did.
+- The day journal (`day_journal` table) is keyed by `(account, day)` with
+  `config.account_key()`, so paper, testnet and mainnet notes never mix.
+
 ## Open questions
 
 - Not yet run against testnet with real fills (needs an API wallet).

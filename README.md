@@ -106,7 +106,7 @@ and `mainnet`.
 
 **Dashboard** at `http://127.0.0.1:8890`: account, positions, resting orders,
 equity curve, market pulse, markets with candle charts, engines, Strategy Lab,
-trades with analytics and a full audit trail, risk settings, events, settings.
+trades with analytics and a full audit trail, a trading calendar with a day journal, risk settings, events, settings.
 Works on a phone-sized screen too.
 
 **Admin console**: reports to the shared FOREX Trader admin console, clearly

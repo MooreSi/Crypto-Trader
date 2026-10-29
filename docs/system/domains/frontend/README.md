@@ -17,5 +17,12 @@ and served by the Python app. Node is a developer dependency only.
   strip below `lg`), a sticky header with the network badge, and shared
   pieces in `shared/ui.tsx` (Card, Stat, Ring, Meter, Sparkline, Segmented).
   Charts use `lib/chart.ts` with `autoSize`, so they follow the window.
+- `components/calendar/`: the trading calendar. The maths lives in
+  `calendarGrid.ts` and `calendarStats.ts`; the grid component is
+  `MonthGridView.tsx`. **macOS is case-insensitive**: a `CalendarGrid.tsx`
+  beside `calendarGrid.ts` made `./CalendarGrid` resolve to the `.ts` file
+  and the component import came back undefined.
+- jsdom under this Node has no working `localStorage`; a test that checks a
+  remembered value stubs one (see `CalendarPage.test.tsx`).
 - The running app serves `frontend/dist` from the checkout: a rebuild changes
   a running instance's UI at once, but new API routes only after a restart.

@@ -61,3 +61,9 @@ class TuneRequest(BaseModel):
     coin: str = Field(min_length=1, max_length=20)
     bars: int = 3000
     folds: int = Field(default=4, ge=1, le=8)
+
+
+class JournalIn(BaseModel):
+    note: str = Field("", max_length=4000)
+    tags: list[str] = Field(default_factory=list, max_length=10)
+    mood: Optional[int] = Field(None, ge=1, le=5)

@@ -82,6 +82,17 @@ MIGRATIONS: tuple[str, ...] = (
     # The account a snapshot was read from (config.account_key()); '' for rows
     # written before this column existed.
     "ALTER TABLE equity_snapshots ADD COLUMN account TEXT NOT NULL DEFAULT ''",
+    # The Calendar's day journal: the owner's note on one UTC trading day, per
+    # account (config.account_key()), so demo and live notes stay apart.
+    """CREATE TABLE day_journal (
+        account    TEXT NOT NULL,
+        day        TEXT NOT NULL,
+        note       TEXT NOT NULL DEFAULT '',
+        tags       TEXT NOT NULL DEFAULT '[]',
+        mood       INTEGER,
+        updated_at REAL NOT NULL,
+        PRIMARY KEY (account, day)
+    )""",
 )
 
 _lock = threading.Lock()

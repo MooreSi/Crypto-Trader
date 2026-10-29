@@ -300,3 +300,33 @@ export interface TuneResult {
   candidates: number;
   min_trades: number;
 }
+
+/** One closed trade as the Calendar files it: under the UTC day it closed on. */
+export interface CalendarTrade {
+  id: number;
+  engine: string;
+  coin: string;
+  direction: "long" | "short";
+  opened_at: number;
+  closed_at: number;
+  /** YYYY-MM-DD, UTC: the risk governor's trading day. */
+  day: string;
+  net_pnl: number;
+  fees: number;
+  risk_usd: number;
+  r: number | null;
+  close_reason: string | null;
+  /** Liquidity session at the close (services/market/sessions.py). */
+  session: string;
+}
+
+export interface CalendarEvent {
+  id: number; uid: string; ts: number; day: string; title: string; kind: string;
+  impact: "low" | "medium" | "high"; coins: string; source: string;
+}
+
+export interface JournalEntry {
+  day: string; note: string; tags: string[]; mood: number | null; updated_at: number;
+}
+
+export type JournalDraft = Pick<JournalEntry, "note" | "tags" | "mood">;

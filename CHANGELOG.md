@@ -20,6 +20,13 @@ All notable changes to Crypto Trader. Newest first.
   share a 600-per-minute budget; coins over budget are scanned next cycle.
 
 ### Added
+- **Calendar** (sidebar, under Trades): closed trades by UTC trading day, as
+  FOREX Trader's calendar shows them. Each day's net ($, % of the balance it
+  opened on, or R), win rate, profit-target and loss-limit marks, events and a
+  journal note; weekly and monthly totals; streaks and weekday totals; a year
+  view; and a day view with profit factor, averages, best and worst, fees,
+  realised peak and drawdown, the day's curve, and splits by engine, coin and
+  session. The journal (note, tags, 1-5 mood) is kept per account.
 - `min_stop_pct` (Risk page, default 0 = off): refuses a trade whose stop is
   closer than this % of price, where the round-trip fee is a large part of
   the risk.

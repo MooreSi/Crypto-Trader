@@ -80,6 +80,14 @@ def history(limit: int = 200, offset: int = 0) -> list[dict]:
     return [_decode(r) for r in rows]
 
 
+def closed_since(ts: float) -> list[dict]:
+    """Trades closed at or after `ts`, newest close first. Read only."""
+    rows = database.get().query(
+        "SELECT * FROM trades WHERE status = 'closed' AND closed_at >= ? "
+        "ORDER BY closed_at DESC", (ts,))
+    return [_decode(r) for r in rows]
+
+
 def events_for(trade_id: int) -> list[dict]:
     rows = database.get().query(
         "SELECT ts, kind, detail FROM trade_events WHERE trade_id = ? ORDER BY id", (trade_id,))

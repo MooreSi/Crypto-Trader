@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.src.api.routers import (
-    account, backtest, engines, events, risk, settings, system, trades,
+    account, backtest, calendar, engines, events, risk, settings, system, trades,
 )
 from backend.src.api.security import LocalOnlyMiddleware
 from backend.src.services.exchange.types import ExchangeError
@@ -31,7 +31,7 @@ def create_app(lifespan=None) -> FastAPI:
     app = FastAPI(title=APP_NAME, version=__version__, lifespan=lifespan,
                   docs_url="/api/docs", openapi_url="/api/openapi.json", redoc_url=None)
     app.add_middleware(LocalOnlyMiddleware)
-    for r in (system, account, engines, trades, risk, events, settings, backtest):
+    for r in (system, account, engines, trades, calendar, risk, events, settings, backtest):
         app.include_router(r.router)
 
     @app.exception_handler(ValueError)
