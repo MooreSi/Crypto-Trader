@@ -27,6 +27,7 @@ const SECTIONS: { title: string; fields: Field[] }[] = [
   ]},
   { title: "Managing open trades", fields: [
     { key: "breakeven_after_tp", label: "Move stop to breakeven after TP n (0 = never)", help: "" },
+    { key: "stop_lock_r", label: "...to n R past entry instead (0 = breakeven)", help: "Locks profit, e.g. 1.5 = at a 1.5R TP1. Entry if price is already back through it.", step: 0.25 },
     { key: "trail_atr_mult", label: "Trail stop at n x ATR(15m) after TP1 (0 = off)", help: "Only ever tightens.", step: 0.25 },
   ]},
   { title: "Markets and events", fields: [
@@ -124,7 +125,14 @@ export function RiskPage() {
                 <span className="w-12 text-right text-muted">{(f * 100).toFixed(0)}%</span>
               </div>
             ))}
+            {1 - ladder.reduce((t, [, f]) => t + f, 0) > 1e-6 && (
+              <div className="num flex items-center gap-3 text-sm text-muted">
+                <span className="w-10 font-semibold">Run</span><span className="flex-1">no TP: the stop and trail exit it</span>
+                <span className="w-12 text-right">{((1 - ladder.reduce((t, [, f]) => t + f, 0)) * 100).toFixed(0)}%</span>
+              </div>
+            )}
           </div>
+          <p className="mt-3 text-xs text-dim">Edit the ladder on the Strategy page.</p>
         </Card>
       </div>
       <div className={clsx("sticky bottom-4 z-10 flex items-center gap-3 rounded-xl border px-4 py-3 backdrop-blur transition",

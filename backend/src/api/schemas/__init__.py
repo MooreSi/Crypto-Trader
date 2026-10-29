@@ -18,6 +18,12 @@ class RiskUpdate(BaseModel):
     fields: dict[str, Any]
 
 
+class StrategyIn(BaseModel):
+    name: str = Field(max_length=200)
+    params: dict[str, Any] = Field(default_factory=dict)
+    notes: str = Field("", max_length=2000)
+
+
 class NewEvent(BaseModel):
     ts: float
     title: str = Field(min_length=1, max_length=200)

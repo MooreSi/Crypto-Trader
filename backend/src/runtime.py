@@ -38,7 +38,7 @@ from backend.src.services.exchange import provider
 from backend.src.services.notify import notifier
 from backend.src.services.positions import manager, trades_repo
 from backend.src.services.remote import client as admin_client
-from backend.src.services.risk import day
+from backend.src.services.risk import day, strategies
 from backend.src.utils import clock
 
 log = logging.getLogger(__name__)
@@ -121,6 +121,12 @@ class TradingRuntime:
     # ── lifecycle ────────────────────────────────────────────────────────────
     def start(self) -> None:
         loop = asyncio.get_running_loop()
+        try:
+            if strategies.ensure_default():
+                log.info("[Runtime] default strategy %r created and activated",
+                         strategies.DEFAULT_NAME)
+        except Exception as exc:
+            log.warning("[Runtime] default strategy not created: %s", exc)
         self._tasks = [
             loop.create_task(self._every(EVENTS_EVERY_S, self.events_pass)),
             loop.create_task(self._every(POSITIONS_EVERY_S, self.positions_pass)),

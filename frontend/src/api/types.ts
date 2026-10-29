@@ -330,3 +330,22 @@ export interface JournalEntry {
 }
 
 export type JournalDraft = Pick<JournalEntry, "note" | "tags" | "mood">;
+
+/** A named set of risk settings; activating it writes them into /api/risk. */
+export interface Strategy {
+  id: string;
+  name: string;
+  notes: string;
+  params: Record<string, number | boolean | number[][]>;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface StrategyList {
+  active: string | null;
+  items: Strategy[];
+  /** Keys the Risk page changed since the active strategy was applied. */
+  drift: string[];
+  keys: string[];
+  current: Record<string, number | boolean | number[][]>;
+}

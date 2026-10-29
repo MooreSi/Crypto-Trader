@@ -148,7 +148,7 @@ class EngineService:
     def track(self, client: ExchangeClient) -> int:
         settings = risk_settings.get()
         plan = {"tp_ladder": settings["tp_ladder"], "breakeven_after_tp": settings["breakeven_after_tp"],
-                "fee_rate": PAPER_TAKER_FEE}
+                "stop_lock_r": settings["stop_lock_r"], "fee_rate": PAPER_TAKER_FEE}
         resolved = 0
         for row in self.store.tracking() + self.store.stale(tracker.LABEL_VERSION):
             try:

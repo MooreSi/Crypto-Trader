@@ -17,6 +17,16 @@ filled), then breakeven and trailing.
 
 ## Known things and gotchas
 
+- **Runner and stop lock** (2026-10-29). A TP ladder whose shares add up to
+  less than 1 leaves a runner with no TP (`_tp_plan`); a runner under $11.20
+  at the last rung's price is added to the last rung. `stop_lock_r` (default
+  0) makes the breakeven move go to entry + n x initial risk; if that price
+  is not strictly on the safe side of the mid, the stop goes to entry. A
+  runner stopped beyond entry after a TP is recorded as "stop in profit".
+  **Not yet watched on testnet**: needs one trade of $60+ notional so the
+  runner is not merged (spec 001). At ~$20 positions the runner is merged
+  and the orders are the same as a 100% TP1.
+
 - **The breakeven move only tightens** (2026-10-25). With `trail_atr_mult`
   on, TP2 filling re-applied "breakeven after TP1" and moved a stop already
   trailed into profit back to entry. `_reconcile_partial` now moves to

@@ -11,6 +11,7 @@ import { LabPage } from "@/components/lab/LabPage";
 import { TradesPage } from "@/components/trades/TradesPage";
 import { CalendarPage } from "@/components/calendar/CalendarPage";
 import { RiskPage } from "@/components/risk/RiskPage";
+import { StrategyPage } from "@/components/strategy/StrategyPage";
 import { EventsPage } from "@/components/events/EventsPage";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { AboutPage } from "@/components/about/AboutPage";
@@ -48,6 +49,7 @@ export default function App() {
           {tab === "Lab" && <LabPage />}
           {tab === "Trades" && <TradesPage />}
           {tab === "Calendar" && <CalendarPage />}
+          {tab === "Strategy" && <StrategyPage />}
           {tab === "Risk" && <RiskPage />}
           {tab === "Events" && <EventsPage />}
           {tab === "Settings" && <SettingsPage />}

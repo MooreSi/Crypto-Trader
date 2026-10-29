@@ -99,3 +99,29 @@ def test_summary_of_nothing():
 
 def test_profit_factor_without_losses_is_none_not_infinite():
     assert sim.summarise([{"t": 0.0, "r": 1.0}], 1.0)["profit_factor"] is None
+
+
+def test_stop_lock_moves_the_stop_to_the_lock_price_not_entry():
+    # 2026-10-29: TP1 80% at 1.5R, stop locked at 1.5R for the 20% runner.
+    bars = [_b(0, 101.6, 99.5, 101.55), _b(1, 101.4, 101.0)]
+    r = sim.simulate("long", 100.0, 99.0, bars, [[1.5, 0.8]], 1, 0.0, 192, stop_lock_r=1.5)
+    assert r["r"] == pytest.approx(0.8 * 1.5 + 0.2 * 1.5) and r["exit"] == "stop"
+
+
+def test_short_stop_lock():
+    bars = [_b(0, 100.5, 98.4, 98.45), _b(1, 99.0, 98.6)]
+    r = sim.simulate("short", 100.0, 101.0, bars, [[1.5, 0.8]], 1, 0.0, 192, stop_lock_r=1.5)
+    assert r["r"] == pytest.approx(1.5)
+
+
+def test_no_lock_by_default_is_breakeven():
+    bars = [_b(0, 101.6, 99.5), _b(1, 101.4, 99.9)]
+    r = sim.simulate("long", 100.0, 99.0, bars, [[1.5, 0.8]], 1, 0.0, 192)
+    assert r["r"] == pytest.approx(0.8 * 1.5) and r["exit"] == "breakeven"
+
+
+def test_a_lock_beyond_the_close_falls_back_to_entry():
+    # As live: a stop past the price would fire at once, so it goes to entry.
+    bars = [_b(0, 101.6, 99.5, 101.2), _b(1, 101.4, 99.9)]
+    r = sim.simulate("long", 100.0, 99.0, bars, [[1.5, 0.8]], 1, 0.0, 192, stop_lock_r=1.5)
+    assert r["r"] == pytest.approx(0.8 * 1.5) and r["exit"] == "breakeven"

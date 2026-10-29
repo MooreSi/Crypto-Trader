@@ -78,18 +78,26 @@ def _place_stop(client: ExchangeClient, coin: str, direction: str, size: float, 
 
 def _tp_plan(market: Market, direction: str, size: float, entry: float, stop: float,
              ladder: list[list[float]]) -> tuple[list[float], list[float]]:
-    """(prices, sizes) per ladder rung. The last rung takes the remainder so
-    rounding never leaves a sliver with no exit but the stop. Then, from the
-    far end inward, a rung worth less than TP_MIN_NOTIONAL_USD is merged into
-    the rung before it (size 0 = merged). TP1 keeps whatever reaches it."""
+    """(prices, sizes) per ladder rung. When the fractions add up to 1 the
+    last rung takes the remainder, so rounding never leaves a sliver with no
+    exit but the stop. When they add up to less, the rest is a runner with no
+    TP (the stop and the trail exit it); a runner worth less than
+    TP_MIN_NOTIONAL_USD at the last rung's price goes to the last rung. Then,
+    from the far end inward, a rung worth less than TP_MIN_NOTIONAL_USD is
+    merged into the rung before it (size 0 = merged). TP1 keeps whatever
+    reaches it."""
+    runner = sum(frac for _, frac in ladder) < 1.0 - 1e-9
     prices, parts = [], []
     remaining = size
     for i, (r, frac) in enumerate(ladder):
         prices.append(rounding.round_price(tp_price(direction, entry, stop, r), market.sz_decimals))
-        part = remaining if i == len(ladder) - 1 else rounding.round_size(size * frac, market.sz_decimals)
+        last = i == len(ladder) - 1 and not runner
+        part = remaining if last else rounding.round_size(size * frac, market.sz_decimals)
         part = min(part, remaining)
         parts.append(max(part, 0.0))
         remaining = rounding.round_size(remaining - part, market.sz_decimals)
+    if runner and remaining > 0 and parts and remaining * prices[-1] < TP_MIN_NOTIONAL_USD:
+        parts[-1] = rounding.round_size(parts[-1] + remaining, market.sz_decimals)
     for i in range(len(parts) - 1, 0, -1):
         if parts[i] > 0 and parts[i] * prices[i] < TP_MIN_NOTIONAL_USD:
             parts[i - 1] = rounding.round_size(parts[i - 1] + parts[i], market.sz_decimals)

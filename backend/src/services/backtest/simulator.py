@@ -2,8 +2,10 @@
 
 The exit plan is the one `order_service` places and `positions/manager.py`
 manages: a stop, a TP ladder of `[R, fraction of the original size]` rungs,
-and the stop moved to entry after `breakeven_after_tp` TPs. Rules, chosen to
-flatter nothing:
+and the stop moved to entry (or `stop_lock_r` R past it) after
+`breakeven_after_tp` TPs. A ladder adding up to less than 1 leaves a runner;
+the live trail is not modelled, so a runner the stop does not take is marked
+to the last close at `max_bars`. Rules, chosen to flatter nothing:
 
 * a bar that touches the stop AND a target is scored as the stop for
   whatever is still open (from OHLC the order inside the bar is unknown; the
@@ -26,13 +28,15 @@ from backend.src.services.risk.sizing import r_multiple, tp_price
 
 def simulate(direction: str, entry: float, stop: float, bars_after: Sequence[Candle],
              ladder: list[list[float]], breakeven_after_tp: int, fee_rate: float,
-             max_bars: int) -> dict:
+             max_bars: int, stop_lock_r: float = 0.0) -> dict:
     long = direction == "long"
     risk = abs(entry - stop)
     fee_r = 2.0 * fee_rate * entry / risk if risk else 0.0
     rungs = [(tp_price(direction, entry, stop, r), r, f) for r, f in ladder]
+    lock = tp_price(direction, entry, stop, stop_lock_r) if stop_lock_r > 0 else entry
     hit = [False] * len(rungs)
     open_frac, booked, tp_hits, cur_stop = 1.0, 0.0, 0, stop
+    moved = False
 
     def done(exit_: str, i: int, gross: float) -> dict:
         return {"r": gross - fee_r, "gross_r": gross, "fee_r": fee_r, "exit": exit_,
@@ -56,8 +60,12 @@ def simulate(direction: str, entry: float, stop: float, bars_after: Sequence[Can
         tp_hits += new_hits
         if open_frac <= 1e-9:
             return done("tp", i, booked)
-        if breakeven_after_tp and tp_hits >= breakeven_after_tp:
-            cur_stop = max(cur_stop, entry) if long else min(cur_stop, entry)
+        if breakeven_after_tp and tp_hits >= breakeven_after_tp and not moved:
+            # As live: a lock past the price would fire at once, so it is entry.
+            safe = lock == entry or (lock < c.close if long else lock > c.close)
+            target = lock if safe else entry
+            cur_stop = max(cur_stop, target) if long else min(cur_stop, target)
+            moved = True
         if i + 1 >= max_bars:
             return done("expired", i, booked + open_frac * r_multiple(direction, entry, stop, c.close))
     last = bars_after[min(len(bars_after), max_bars) - 1].close if bars_after else entry

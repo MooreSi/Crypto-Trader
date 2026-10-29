@@ -36,12 +36,14 @@ LABEL_VERSION = 2
 def evaluate(signal: dict, bars_after: Sequence[Candle], plan: dict) -> dict:
     """Outcome so far for one tracking signal, given the closed bars after it.
 
-    `plan` holds `tp_ladder`, `breakeven_after_tp` and `fee_rate`.
+    `plan` holds `tp_ladder`, `breakeven_after_tp`, `fee_rate` and optionally
+    `stop_lock_r`.
     """
     direction, stop = signal["direction"], signal["stop"]
     entry = signal.get("fill") or signal["entry"]
     out = simulator.simulate(direction, entry, stop, bars_after, plan["tp_ladder"],
-                             int(plan["breakeven_after_tp"]), plan["fee_rate"], MAX_BARS)
+                             int(plan["breakeven_after_tp"]), plan["fee_rate"], MAX_BARS,
+                             float(plan.get("stop_lock_r", 0.0)))
     mfe, mae = 0.0, 0.0
     for c in bars_after[:out["exit_index"] + 1]:      # excursions up to the exit, not past it
         mfe = max(mfe, r_multiple(direction, entry, stop, c.high if direction == "long" else c.low))

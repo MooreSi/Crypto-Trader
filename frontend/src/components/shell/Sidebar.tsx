@@ -1,17 +1,17 @@
 import clsx from "clsx";
 import {
-  Activity, BarChart3, CalendarClock, CalendarDays, Cpu, FlaskConical, Info, LayoutDashboard, ListOrdered, Settings,
-  ShieldCheck, type LucideIcon,
+  Activity, BarChart3, CalendarClock, CalendarDays, Cpu, FlaskConical, Info, Layers, LayoutDashboard, ListOrdered,
+  Settings, ShieldCheck, type LucideIcon,
 } from "lucide-react";
 import type { SystemStatus } from "@/api/types";
 import { duration } from "@/lib/format";
 
-export const TABS = ["Dashboard", "Markets", "Engines", "Lab", "Trades", "Calendar", "Risk", "Events", "Settings", "About"] as const;
+export const TABS = ["Dashboard", "Markets", "Engines", "Lab", "Trades", "Calendar", "Strategy", "Risk", "Events", "Settings", "About"] as const;
 export type Tab = (typeof TABS)[number];
 
 const ICONS: Record<Tab, LucideIcon> = {
   Dashboard: LayoutDashboard, Markets: BarChart3, Engines: Cpu, Lab: FlaskConical, Trades: ListOrdered, Calendar: CalendarDays,
-  Risk: ShieldCheck, Events: CalendarClock, Settings, About: Info,
+  Strategy: Layers, Risk: ShieldCheck, Events: CalendarClock, Settings, About: Info,
 };
 
 const LABELS: Partial<Record<Tab, string>> = { Lab: "Strategy Lab" };

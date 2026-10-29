@@ -37,6 +37,9 @@ NUMERIC: dict[str, tuple[float, float, float]] = {
     "max_funding_rate_pct":      (0.05, 0.0, 5.0),          # hourly, against you
     "breakeven_after_tp":        (1, 0, 8),                 # 0 = never
     "trail_atr_mult":            (0.0, 0.0, 10.0),          # 0 = no trailing
+    # Where the breakeven move puts the stop, in R from entry (0 = entry).
+    # 1.5 with a 1.5R TP1 locks the stop at TP1. Added 2026-10-29, default off.
+    "stop_lock_r":               (0.0, 0.0, 20.0),
     "ml_min_probability":        (0.5, 0.0, 1.0),
     # Refuse a signal whose stop is closer than this % of price (0 = off).
     # A round trip pays ~0.09% in taker fees whatever the stop, so a 0.2% stop

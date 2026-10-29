@@ -9,8 +9,11 @@ the exchange:
   cancelled.
 * **position smaller** -- a TP trigger filled. The partial is recorded from
   the fills, the stop is resized to what is left, and after
-  `breakeven_after_tp` TPs the stop moves to the entry price, unless it is
-  already tighter (a trailed stop is never loosened back to breakeven).
+  `breakeven_after_tp` TPs the stop moves to the entry price, or
+  `stop_lock_r` x the initial risk past it when that is on the safe side of
+  the mid, unless it is already tighter (a trailed stop is never loosened).
+  A TP ladder adding up to less than 1 leaves a runner with no TP, which
+  only the stop and the trail exit.
 * **trailing** -- once TP1 has filled and `trail_atr_mult` > 0, the stop
   follows price at that many ATRs, and only ever tightens.
 
@@ -66,7 +69,11 @@ def _exit_reason(trade: dict, fills: list[Fill]) -> str:
     oids = {f.oid for f in fills}
     if trade.get("sl_oid") in oids:
         at_entry = abs(trade["stop_loss"] - trade["entry_price"]) <= trade["entry_price"] * 1e-4
-        return "breakeven stop" if trade["tp_hit"] and at_entry else "stop loss"
+        if trade["tp_hit"] and at_entry:
+            return "breakeven stop"
+        sign = 1 if trade["direction"] == "long" else -1
+        in_profit = (trade["stop_loss"] - trade["entry_price"]) * sign > 0
+        return "stop in profit" if trade["tp_hit"] and in_profit else "stop loss"
     hit = [i + 1 for i, o in enumerate(trade.get("tp_oids") or []) if o and o in oids]
     if hit:
         return f"TP{max(hit)}"
@@ -92,7 +99,7 @@ def _reconcile_gone(client: ExchangeClient, trade: dict) -> None:
 
 
 def _reconcile_partial(client: ExchangeClient, trade: dict, live_size: float,
-                       market: Market, settings: dict) -> dict:
+                       market: Market, settings: dict, mid: Optional[float]) -> dict:
     filled = trade["size"] - live_size
     fills = _exit_fills(client, trade)
     price, pnl, fee = _book_from_fills(fills, trade, filled)
@@ -106,16 +113,34 @@ def _reconcile_partial(client: ExchangeClient, trade: dict, live_size: float,
     fresh = trades_repo.get(trade["id"])
     be_after = int(settings["breakeven_after_tp"])
     new_stop = fresh["stop_loss"]
+    reason = "breakeven"
     if be_after and tp_hit >= be_after:
         # The fill price is rarely a valid tick (an average of several fills);
         # the stop must be one, or the exchange refuses it.
         be = rounding.round_price(fresh["entry_price"], market.sz_decimals)
+        lock = _lock_price(fresh, market, mid, float(settings["stop_lock_r"]))
+        if lock is not None:
+            be, reason = lock, f"lock {float(settings['stop_lock_r']):g}R"
         # Only ever tighten: a stop the trail already moved into profit stays.
         if _tighter(fresh["direction"], be, fresh["stop_loss"]):
             new_stop = be
     order_service.move_stop(client, fresh, new_stop, live_size,
-                            "breakeven" if new_stop != fresh["stop_loss"] else "resize after TP")
+                            reason if new_stop != fresh["stop_loss"] else "resize after TP")
     return trades_repo.get(trade["id"])
+
+
+def _lock_price(trade: dict, market: Market, mid: Optional[float], lock_r: float) -> Optional[float]:
+    """The stop `lock_r` x the initial risk past entry, or None to use entry.
+
+    None when the lock is off, or when the price is not strictly on the safe
+    side of the mid: a stop there would fire at once."""
+    if lock_r <= 0 or mid is None:
+        return None
+    sign = 1 if trade["direction"] == "long" else -1
+    target = trade["entry_price"] + sign * lock_r * abs(trade["entry_price"] - trade["initial_stop"])
+    price = rounding.round_stop(target, mid, market.sz_decimals)   # rounded away from the mid
+    safe = price < mid if trade["direction"] == "long" else price > mid
+    return price if safe else None
 
 
 def _tighter(direction: str, candidate: float, current: float) -> bool:
@@ -159,7 +184,8 @@ def manage(client: ExchangeClient, account: Optional[AccountState] = None) -> di
             market = markets[trade["coin"]]
             live = rounding.round_size(abs(pos.size), market.sz_decimals)
             if live < trade["size"] - 10 ** -market.sz_decimals / 2:
-                trade = _reconcile_partial(client, trade, live, market, settings)
+                trade = _reconcile_partial(client, trade, live, market, settings,
+                                           mids.get(trade["coin"]))
             _trail(client, trade, market, mids.get(trade["coin"]), settings)
         except Exception as exc:
             log.exception("[Positions] managing #%s failed: %s", trade.get("id"), exc)

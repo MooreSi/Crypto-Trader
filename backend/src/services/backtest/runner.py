@@ -61,6 +61,7 @@ def trades_from_signals(bars: Sequence[Candle], sigs: dict[int, Setup], interval
     """
     step = INTERVAL_MS[interval]
     ladder, be = settings["tp_ladder"], int(settings["breakeven_after_tp"])
+    lock_r = float(settings.get("stop_lock_r", 0.0))
     trades: list[dict] = []
     busy_until = -1
     for i in sorted(k for k in sigs if start <= k < end):
@@ -68,7 +69,7 @@ def trades_from_signals(bars: Sequence[Candle], sigs: dict[int, Setup], interval
             continue
         s = sigs[i]
         out = simulator.simulate(s.direction, s.entry, s.stop, bars[i + 1:end], ladder, be,
-                                 PAPER_TAKER_FEE, tracker.MAX_BARS)
+                                 PAPER_TAKER_FEE, tracker.MAX_BARS, lock_r)
         if out["exit"] == "open":
             break
         exit_i = i + 1 + out["exit_index"]

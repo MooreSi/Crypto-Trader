@@ -3,7 +3,8 @@
  *
  * Every write carries `X-Crypto-Trader: 1`. The server refuses any POST or
  * DELETE without it (backend/src/api/security.py), which is what stops another
- * website the owner visits from placing orders through this dashboard.
+ * website the owner visits from placing orders through this dashboard. PUT
+ * carries it too.
  */
 export class ApiError extends Error {
   readonly status: number;
@@ -41,5 +42,6 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 export const api = {
   get: <T>(path: string) => request<T>("GET", path),
   post: <T>(path: string, body?: unknown) => request<T>("POST", path, body ?? {}),
+  put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
   del: <T>(path: string) => request<T>("DELETE", path),
 };

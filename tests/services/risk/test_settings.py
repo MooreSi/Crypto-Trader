@@ -57,3 +57,8 @@ def test_min_stop_pct_default_is_off_and_clamped(fresh_db):
     # Added 2026-10-25, default 0 = the behaviour before it existed (golden rule 3).
     assert settings.defaults()["min_stop_pct"] == 0.0
     assert settings.update({"min_stop_pct": 50})["min_stop_pct"] == 5.0
+
+
+def test_stop_lock_defaults_to_off():
+    # Added 2026-10-29: 0 keeps the old breakeven move to entry.
+    assert settings.defaults()["stop_lock_r"] == 0.0

@@ -26,3 +26,7 @@ and served by the Python app. Node is a developer dependency only.
   remembered value stubs one (see `CalendarPage.test.tsx`).
 - The running app serves `frontend/dist` from the checkout: a rebuild changes
   a running instance's UI at once, but new API routes only after a restart.
+- `components/strategy/`: the Strategy page (2026-10-29). `strategyFields.ts`
+  holds labels and `exitPlan()`; the editor keeps numbers as typed strings
+  so a cleared box is refused, not saved as 0. `api.put` exists for it (PUT
+  carries the CSRF header like every write).

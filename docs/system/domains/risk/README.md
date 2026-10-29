@@ -22,6 +22,18 @@ context, runs the gates, sizes, records the decision and calls the order service
 
 ## Known things and gotchas
 
+- **Strategies** (`strategies.py`, 2026-10-29). A strategy is a named set of
+  the settings in `strategies.KEYS`; activating it calls `settings.update`
+  with its values, so the executor and manager never know strategies exist.
+  The Risk page can still change those keys; the Strategy page then lists
+  them as drift. Stored as one JSON blob (`app_config` key `strategies`) per
+  account database. `ensure_default()` runs at runtime start and on the first
+  `GET /api/strategies`: once per database it creates "TP1 80% at 1.5R +
+  trailed runner" from the current settings with only the exits replaced
+  (`[[1.5, 0.8]]`, lock 1.5R, trail 1.5 x ATR) and activates it. Deleting it
+  does not bring it back. The trail-distance study is in
+  docs/specs/001-strategies.md.
+
 - **Fees vs stop distance** (2026-10-25). A round trip pays ~0.09% of price in
   taker fees, plus slippage on a triggered stop, whatever the stop. Live
   mainnet losses on ~$20 positions with 0.2-0.5% stops closed at -1.16R to
