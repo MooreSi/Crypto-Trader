@@ -1,16 +1,17 @@
-import { CircleDollarSign, Layers, Lock, TrendingUp, Wallet } from "lucide-react";
+import { CircleDollarSign, Lock, TrendingUp, Wallet } from "lucide-react";
 import { api } from "@/api/client";
 import type { Account, Analytics, SystemStatus } from "@/api/types";
 import { usePoll } from "@/hooks/usePoll";
 import { pct, price, pnlClass, signed, usd } from "@/lib/format";
-import { Badge, Card, ErrorLine, Meter, Notice, Side, Sparkline, Stat, Table } from "@/components/shared/ui";
+import { Badge, Card, ErrorLine, Meter, Notice, Sparkline, Stat, Table } from "@/components/shared/ui";
 import type { Tab } from "@/components/shell/Sidebar";
 import { EquityChart, type EquityPoint } from "./EquityChart";
 import { MarketPulseCard } from "./MarketPulseCard";
 import { PerformanceCard } from "./PerformanceCard";
+import { PositionsCard } from "./PositionsCard";
 
 export function DashboardPage({ status, go }: { status: SystemStatus | null; go?: (t: Tab) => void }) {
-  const { data: acc, error } = usePoll(() => api.get<Account>("/api/account"), 5000);
+  const { data: acc, error, reload: reloadAcc } = usePoll(() => api.get<Account>("/api/account"), 5000);
   const { data: curve } = usePoll(() => api.get<EquityPoint[]>("/api/account/equity?days=30"), 60000);
   const { data: perf } = usePoll(() => api.get<Analytics>("/api/trades/analytics"), 60000);
   const spark = (curve ?? []).slice(-96).map((p) => p.equity);
@@ -44,24 +45,7 @@ export function DashboardPage({ status, go }: { status: SystemStatus | null; go?
         <PerformanceCard a={perf} onOpen={go ? () => go("Trades") : undefined} />
       </div>
       <MarketPulseCard />
-      <Card title="Positions" subtitle={`${acc?.positions.length ?? 0} open`} icon={<Layers className="h-4 w-4" />}>
-        <Table head={["Coin", "Side", "Size", "Entry", "Unrealised", "Leverage", "Liquidation", "Margin"]}
-               align={["l", "l", "r", "r", "r", "r", "r", "r"]}
-               empty={acc && acc.positions.length === 0 ? "No open positions" : undefined}>
-          {acc?.positions.map((p) => (
-            <tr key={p.coin}>
-              <td className="font-semibold">{p.coin}</td>
-              <td><Side direction={p.direction} /></td>
-              <td className="text-right">{Math.abs(p.size)}</td>
-              <td className="text-right">{price(p.entry_price)}</td>
-              <td className={`text-right font-medium ${pnlClass(p.unrealised_pnl)}`}>{signed(p.unrealised_pnl)}</td>
-              <td className="text-right">{p.leverage}x</td>
-              <td className="text-right text-warn">{price(p.liquidation_price)}</td>
-              <td className="text-right">{usd(p.margin_used)}</td>
-            </tr>
-          ))}
-        </Table>
-      </Card>
+      <PositionsCard acc={acc} reload={reloadAcc} />
       <Card title="Resting orders" subtitle="Exchange-side stops and take-profits" icon={<Lock className="h-4 w-4" />}>
         <Table head={["Coin", "Kind", "Side", "Size", "Trigger"]} align={["l", "l", "l", "r", "r"]}
                empty={acc && acc.open_orders.length === 0 ? "No resting orders" : undefined}>

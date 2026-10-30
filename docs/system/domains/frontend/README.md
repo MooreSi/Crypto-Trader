@@ -9,6 +9,13 @@ and served by the Python app. Node is a developer dependency only.
   every write (the server refuses writes without it).
 - Cyan accent, not FOREX Trader's gold, so the two dashboards are never mixed up.
 - Tabs follow the URL hash (`#Markets`), including back/forward.
+  `#chart/<coin>` is not a tab: `App.tsx` renders `chart/PositionChartPage`
+  on its own (no sidebar), opened in a new window from a dashboard position.
+- Dashboard positions (`dashboard/PositionsCard.tsx`) join the exchange's
+  positions to `/api/trades/open` by coin. The mark is recovered from the
+  exchange's own `unrealised_pnl / signed size` (`positionTargets.ts`), so the
+  "move to TP / stop" figures use the same price the P&L does. A position
+  with no matching trade gets no Close button: the app leaves it untouched.
 - Anything that can move money asks first (`confirmAction`): turning trading on,
   making an engine live, closing a trade, choosing mainnet.
 

@@ -15,13 +15,30 @@ import { StrategyPage } from "@/components/strategy/StrategyPage";
 import { EventsPage } from "@/components/events/EventsPage";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { AboutPage } from "@/components/about/AboutPage";
+import { PositionChartPage } from "@/components/chart/PositionChartPage";
 
 function initialTab(): Tab {
   const h = decodeURIComponent(window.location.hash.slice(1));
   return (TABS as readonly string[]).includes(h) ? (h as Tab) : "Dashboard";
 }
 
+/** `#chart/<coin>` is a page of its own, opened in a new window from a position. */
+function chartCoin(): string | null {
+  const h = decodeURIComponent(window.location.hash.slice(1));
+  return h.startsWith("chart/") && h.length > 6 ? h.slice(6) : null;
+}
+
 export default function App() {
+  const [coin, setCoin] = useState<string | null>(chartCoin);
+  useEffect(() => {
+    const onHash = () => setCoin(chartCoin());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  return coin ? <PositionChartPage key={coin} coin={coin} /> : <Shell />;
+}
+
+function Shell() {
   const [tab, setTab] = useState<Tab>(initialTab);
   const { data: status, reload } = usePoll(() => api.get<SystemStatus>("/api/system/status"), 5000);
   const go = (t: Tab) => { setTab(t); window.location.hash = t; };
