@@ -9,6 +9,13 @@
 (refuse, never kill), start uvicorn on 127.0.0.1. `app.py` lifespan: pin the
 network, open the main DB, start the runtime loops.
 
+The port check binds with SO_REUSEADDR, as uvicorn does, then tries a
+connect. A plain bind failed every dashboard Restart while a browser tab was
+polling: the closed connections hold 8890 in TIME_WAIT for ~30s on macOS,
+the length of `--wait 30`. The connect is not optional: on macOS a
+SO_REUSEADDR bind to 127.0.0.1 succeeds beside a program listening on
+0.0.0.0, and only the connect sees that program.
+
 ## Constraints
 
 - **Local only.** No VPS mode in this build; nothing binds a public interface.

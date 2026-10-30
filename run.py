@@ -49,12 +49,23 @@ def setup_logging() -> None:
 
 
 def port_free(host: str, port: int) -> bool:
+    """True if uvicorn could bind here and nothing is listening.
+
+    Binds the way uvicorn does (SO_REUSEADDR on POSIX), so connections the
+    old process closed on a restart, still in TIME_WAIT for ~30s on macOS,
+    do not read as "in use". SO_REUSEADDR on macOS would also let this bind
+    beside a program listening on 0.0.0.0, so a connect check follows: if
+    anything answers on the port, it is taken."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        if os.name == "posix":
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             s.bind((host, port))
-            return True
         except OSError:
             return False
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as c:
+        c.settimeout(1.0)
+        return c.connect_ex((host, port)) != 0
 
 
 def wait_for_port(host: str, port: int, timeout: float) -> bool:

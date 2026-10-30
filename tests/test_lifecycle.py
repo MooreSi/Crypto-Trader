@@ -105,3 +105,34 @@ def test_wait_for_port_gives_up_when_the_port_stays_taken():
         port = s.getsockname()[1]
         assert run.wait_for_port("127.0.0.1", port, timeout=0.2) is False
     assert run.wait_for_port("127.0.0.1", port, timeout=2) is True
+
+
+def _port_left_in_time_wait() -> int:
+    """A port whose last connection the server closed first, as a restart does
+    to every open dashboard poll: the port then sits in TIME_WAIT (~30s on macOS)."""
+    srv = socket.socket()
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind(("127.0.0.1", 0))
+    srv.listen()
+    port = srv.getsockname()[1]
+    client = socket.create_connection(("127.0.0.1", port))
+    conn, _ = srv.accept()
+    conn.close()
+    client.recv(1)          # wait for the server's FIN so the server side ends in TIME_WAIT
+    client.close()
+    srv.close()
+    return port
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX TIME_WAIT bind rule")
+def test_a_port_in_time_wait_after_a_restart_is_free():
+    port = _port_left_in_time_wait()
+    assert run.port_free("127.0.0.1", port) is True
+
+
+def test_a_listener_on_every_interface_still_counts_as_taken():
+    with socket.socket() as s:
+        s.bind(("0.0.0.0", 0))
+        s.listen()
+        port = s.getsockname()[1]
+        assert run.port_free("127.0.0.1", port) is False
