@@ -23,13 +23,26 @@ minimum stop, chosen on the first 60% of the history and checked on the
 last 40%: sweeps against the daily trend lost under every exit plan, sweeps
 with it made money at a 1.5R target. With too few daily bars to tell (a new
 listing) the filter does not apply, which is how the engine behaved before.
+
+`accept` adds a market-context filter the service applies after `generate`:
+funding must agree with the trade. A long only while longs pay at least
+`MIN_AGREE_FUNDING_8H` per 8 hours (perps at or above the resting premium),
+a short only while shorts are paid that much. Measured 2026-11-01 on 2
+years of 15m history for 12 coins (Binance USD-M perps, the closest long
+public record) under the live exit plan with the 1% minimum stop: kept
++0.039R a trade over 1206 trades against -0.085R for the 2409 it drops;
+kept beat dropped in 7 of 8 quarters, under every exit plan tried, and in
+both the first 60% and the last 40% of the history (+0.026 vs -0.048,
++0.073 vs -0.074). Long-only, by contrast, lost -0.115R out of sample, so
+this is not a long bias. With no snapshot (the backtester, a coin missing
+from the market list) it does not apply.
 """
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Optional, Sequence
 
 from backend.src.services.engines.service import Setup
-from backend.src.services.exchange.types import Candle
+from backend.src.services.exchange.types import Candle, MarketSnapshot
 from backend.src.services.market import indicators as ind
 from backend.src.services.market import levels
 from backend.src.services.reversal import ict_patterns as ict
@@ -40,6 +53,10 @@ MIN_STOP_ATR = 0.8
 MAX_ADX = 35.0
 HTF_FAST = 10
 HTF_SLOW = 20
+#: Funding that counts as agreeing, as a fraction per 8 hours (0.7 bp). The
+#: resting rate when perps trade at a premium is 1 bp per 8h (0.00125%/h on
+#: Hyperliquid); below 0.7 bp the premium has turned to a discount.
+MIN_AGREE_FUNDING_8H = 0.00007
 
 EXTRA_FEATURES = ("rv_sweep_depth_atr", "rv_bars_since_sweep", "rv_fvg", "rv_unicorn",
                   "rv_prior_day_level")
@@ -52,6 +69,16 @@ def daily_bias(htf: Sequence[Candle]) -> int:
     if not closes or fast[-1] is None or slow[-1] is None:
         return 0
     return 1 if fast[-1] > slow[-1] else -1
+
+
+def accept(setup: Setup, snapshot: Optional[MarketSnapshot]) -> bool:
+    """Does funding agree with the setup? True when there is no snapshot."""
+    if snapshot is None:
+        return True
+    per_8h = snapshot.funding_rate * 8
+    if setup.direction == "long":
+        return per_8h >= MIN_AGREE_FUNDING_8H
+    return per_8h <= -MIN_AGREE_FUNDING_8H
 
 
 def generate(bars: Sequence[Candle], htf: Sequence[Candle]) -> list[Setup]:

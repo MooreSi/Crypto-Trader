@@ -128,3 +128,24 @@ def test_an_executed_signal_is_tracked_from_its_trade_fill(engines, fake_exchang
     monkeypatch.setattr(tracker, "evaluate", lambda sig, bars, plan: seen.append(sig) or real(sig, bars, plan))
     eng.track(fake_exchange)
     assert seen and seen[0]["fill"] == b.close * 1.01
+
+
+def _fixed_long(bars, htf):
+    from backend.src.services.engines.service import Setup
+    c = bars[-1].close
+    return [Setup("long", c, c * 0.98, "fixed long", {})]
+
+
+def test_reversal_scan_drops_a_long_the_funding_disagrees_with(engines, fake_exchange):
+    eng = engines["reversal"]
+    eng.generator = _fixed_long
+    fake_exchange.funding["ETH"] = -0.00002          # longs are being paid: perps at a discount
+    assert eng.cycle(fake_exchange)["signals"] == 0
+    fake_exchange.funding["ETH"] = 0.0000125         # the resting rate: longs pay
+    assert eng.cycle(fake_exchange)["signals"] == 1
+
+
+def test_funding_filter_is_reversal_only(engines, fake_exchange):
+    # negative control: the same funding does not touch breakout
+    fake_exchange.funding["ETH"] = -0.00002
+    assert engines["breakout"].cycle(fake_exchange)["signals"] == 1

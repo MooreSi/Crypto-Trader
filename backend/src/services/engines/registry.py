@@ -50,7 +50,7 @@ def build() -> dict[str, EngineService]:
         model = EngineModel(name, names, config.MODELS_DIR / source)
         model.load()
         out[name] = EngineService(name, interval, module.generate, module.EXTRA_FEATURES, store,
-                                  model, htf)
+                                  model, htf, getattr(module, "accept", None))
     return out
 
 

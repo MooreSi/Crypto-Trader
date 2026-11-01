@@ -30,7 +30,7 @@ from backend.src.services.engines.base import Signal
 from backend.src.services.engines.signal_repo import LIVE_EXECUTED, LIVE_REFUSED, SignalStore
 from backend.src.services.events import calendar
 from backend.src.services.exchange.paper_exchange import PAPER_TAKER_FEE
-from backend.src.services.exchange.types import Candle, ExchangeClient
+from backend.src.services.exchange.types import Candle, ExchangeClient, MarketSnapshot
 from backend.src.services.market import candles as candle_src
 from backend.src.services.market import universe
 from backend.src.services.market.candles import INTERVAL_MS
@@ -60,15 +60,20 @@ class Setup:
 
 
 Generator = Callable[[Sequence[Candle], Sequence[Candle]], list[Setup]]
+#: An engine's optional market-context filter: may this setup trade, given
+#: the coin's live snapshot (None when the market list has no row for it)?
+ContextFilter = Callable[[Setup, Optional[MarketSnapshot]], bool]
 
 
 class EngineService:
     def __init__(self, name: str, interval: str, generator: Generator, extra_features: Sequence[str],
-                 store: SignalStore, model: EngineModel, htf_interval: Optional[str] = None) -> None:
+                 store: SignalStore, model: EngineModel, htf_interval: Optional[str] = None,
+                 accept: Optional[ContextFilter] = None) -> None:
         self.name = name
         self.interval = interval
         self.htf_interval = htf_interval
         self.generator = generator
+        self.accept = accept
         self.extra_features = tuple(extra_features)
         self.store = store
         self.model = model
@@ -119,6 +124,8 @@ class EngineService:
                 if len(bars) < 60:
                     continue
                 for setup in self.generator(bars, htf):
+                    if self.accept and not self.accept(setup, snapshots.get(coin)):
+                        continue
                     created = bars[-1].t / 1000 + step_s   # the bar's close
                     if self.store.exists_since(coin, setup.direction, created - DEDUPE_BARS * step_s):
                         continue

@@ -12,7 +12,7 @@ Hyperliquid perpetual. Each produces `Setup`s from closed candles; the shared
 | Engine | Bars | Idea |
 |---|---|---|
 | Breakout | 15m | tight range (<= 4 ATR, 24 bars) broken on volume (z >= 1), or broken then retested; the trigger closes in its outer 30% |
-| Reversal | 15m (+1d) | liquidity sweep of a swing / prior-day level, then market structure shift, with the daily EMA10/20 trend; FVG and "unicorn" as features |
+| Reversal | 15m (+1d) | liquidity sweep of a swing / prior-day level, then market structure shift, with the daily EMA10/20 trend and funding agreeing (`accept`); FVG and "unicorn" as features |
 | Trend PA | 1h (+4h) | pullback to EMA20 in an EMA20>50>200 trend with ADX >= 20 and a rejection wick; 4h trend not against it; RSI not stretched (<= 65 long, >= 35 short) |
 
 ## Constraints
@@ -123,7 +123,57 @@ Hyperliquid perpetual. Each produces `Setup`s from closed candles; the shared
   25%). For reversal it is also the most profitable plan in both halves.
   The ladder is the owner's setting (`tp_ladder`), not an engine constant.
 
+- **Two-year study, 2026-11-01.** The 2026-10-27 numbers above came from
+  ~52 days of 15m bars. Repeated on 2 years (2024-11 to 2026-11) of Binance
+  USD-M perp candles for the same 12 coins (Hyperliquid's API only serves
+  the last 5000 bars; Binance prices track Hyperliquid's closely and carry
+  taker-buy volume and funding), with the current generators, the live
+  1% minimum stop and the live plan (TP1 1.3R for 80%, breakeven/lock after
+  it; the trail is not modelled). Split at 2025-11-04 (first 60% / last 40%).
+  **Every engine loses under every exit plan in both halves:**
+
+  | Engine | trades IS / OOS | avg R live plan IS / OOS | best other plan OOS |
+  |---|---|---|---|
+  | breakout | 2732 / 2082 | -0.050 / -0.124 | -0.081 (1R) |
+  | reversal | 2110 / 1513 | -0.038 / -0.052 | -0.019 (old ladder) |
+  | trend_pa | 735 / 552 | -0.125 / -0.098 | -0.010 (3R) |
+
+  So the earlier "+R at a 1.5R target" did not survive more history.
+  Signed forward returns before fees are ~0 at 1-16 bars (breakout and
+  trend PA are faded right after entry: trend PA's 1-bar return is -0.05R,
+  t = -3.9); a gradient-boosted and a logistic model trained on the first
+  60% with 26 context features scored OOS AUC 0.48-0.52 for all three. No
+  exit plan turns a setup without entry information into an edge.
+- **What held, and shipped: funding agreement for reversal** (`accept`):
+  long only while funding is at least 0.7 bp per 8h (perps at their
+  resting premium), short only while it is at most -0.7 bp. Kept +0.039R a
+  trade (1206 trades) vs -0.085R for the 2409 dropped, kept > dropped in
+  7 of 8 quarters, in both halves and under every exit plan; 9 of 12 coins
+  positive. The kept set on its own is t = 1.1: an improvement, not a proven
+  edge. Hyperliquid's funding has the same shape (rests at 1 bp/8h, drops
+  below when the premium turns to a discount) but sat at or above 0.7 bp
+  more often than Binance's in the same weeks (SOL 62% vs 38%), so expect
+  more longs through it live. The backtester has no funding history, so the
+  Lab does not apply it.
+- **Tried on the two-year data and rejected** (failed in one half, or kept
+  set still negative): weekend skip, hour/session blocks (the 22-23h UTC
+  effect from Quantpedia did not show), BTC 1h/4h/1d trend agreement, coin
+  4h/1d trend, 7-day momentum, low BTC correlation, ATR-percentile caps,
+  Bollinger-inside-Keltner squeeze, volume vs 24h, taker-flow imbalance
+  (also unavailable live: Hyperliquid candles have no taker split),
+  long-only, extreme-funding fades. Stop width looked like the strongest
+  correlate (Spearman +0.3 to +0.4) but it is an artefact: fees make every
+  -1R loser slightly worse at a tight stop and rank correlation picks that
+  up; expectancy by stop-width bucket is flat. Score filters by expectancy
+  per trade, never by total R against a losing baseline: dropping 60% of a
+  losing engine's trades "improves" total R whatever the filter.
+
 ## Open questions
 
-- Which engines, if any, have an edge on crypto. Decide from tracked research
-  before switching any engine live on mainnet.
+- Which engines, if any, have an edge on crypto. On two years of data none
+  does as designed (see above). Reversal is live on mainnet; with the
+  funding filter its backtest is only marginally positive (+0.039R a trade,
+  not significant, before funding and slippage). Whether to keep it live, require a model
+  (`ml_require_model`), or move research to slower trend following (the
+  published crypto evidence is strongest for daily Donchian-style trend
+  following with a trailing exit) is the owner's decision.

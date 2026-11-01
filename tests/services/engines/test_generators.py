@@ -150,3 +150,40 @@ def test_trend_pa_skips_a_long_with_rsi_already_stretched(monkeypatch):
     assert trend_pa.generate(_trend_bars(), []) == []
     monkeypatch.setattr(trend_pa.ind, "rsi", lambda closes, period=14: 55.0)
     assert len(trend_pa.generate(_trend_bars(), [])) == 1
+
+
+# ── 2026-11-01: funding agreement for reversal, measured on 2 years of 12
+# coins' 15m history; see the engines domain README.
+
+def _snap(hourly_funding):
+    from backend.src.services.exchange.types import MarketSnapshot
+    return MarketSnapshot("SOL", 100.0, 100.0, 100.0, hourly_funding, 1000.0, 1e9, 100.0)
+
+
+def _setup(direction):
+    from backend.src.services.engines.service import Setup
+    return Setup(direction, 100.0, 98.0 if direction == "long" else 102.0, "test")
+
+
+def test_reversal_takes_a_long_while_longs_pay_the_normal_funding():
+    # 0.00125%/h is Hyperliquid's resting rate (0.01% per 8h) when perps trade at a premium
+    assert reversal.accept(_setup("long"), _snap(0.0000125)) is True
+
+
+def test_reversal_skips_a_long_when_funding_is_below_its_resting_rate():
+    # perps at a discount: a sweep of a low there kept losing in both halves
+    assert reversal.accept(_setup("long"), _snap(0.000005)) is False
+    assert reversal.accept(_setup("long"), _snap(-0.00002)) is False
+
+
+def test_reversal_takes_a_short_only_while_shorts_are_paid():
+    assert reversal.accept(_setup("short"), _snap(-0.00002)) is True
+    assert reversal.accept(_setup("short"), _snap(0.0000125)) is False
+    assert reversal.accept(_setup("short"), _snap(0.0)) is False
+
+
+def test_reversal_funding_filter_does_not_apply_without_a_snapshot():
+    # no market context (the backtester, a coin missing from the snapshot):
+    # behave as before the filter
+    assert reversal.accept(_setup("long"), None) is True
+    assert reversal.accept(_setup("short"), None) is True
